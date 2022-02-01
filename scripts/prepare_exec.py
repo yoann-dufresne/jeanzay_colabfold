@@ -5,6 +5,38 @@ import sys
 import argparse
 import random
 import subprocess as sp
+import shutil
+
+
+
+
+def generate_submit(submit_dir, subdir_prefix, status_file):
+    # Detect job candidates
+    job_idxs = [int(f[len(subdir_prefix):]) for f in listdir(submit_dir) if f.startswith(subdir_prefix)]
+    job_idxs = set(job_idxs)
+
+    # Remove finished jobs
+    with open(status_file) as sf:
+        sf.readline()
+
+        for line in sf:
+            run, num_mol, num_done = line.strip().split("\t")
+            num_mol = int(num_mol)
+            num_done = int(num_done)
+
+            # Check finished
+            if num_mol == num_done:
+                job_idx = int(run[len(subdir_prefix):])
+                job_idxs.remove(job_idx)
+
+    # Group jobs for submition
+    job_idxs = list(job_idxs)
+    job_idxs.sort()
+
+    print(job_idxs)
+
+    # Write the submition script
+
 
 
 if __name__ == "__main__":
@@ -36,6 +68,8 @@ if __name__ == "__main__":
     sp.run(command.split(" "), stdin=sys.stdin, stderr=sys.stderr)    
 
     # Step 3 - Generate slum files
+    generate_submit(args.input_dir, args.subdir_prefix, path.join(tmp_stats, "status.tsv"))
+    shutil.copyfile(path.join(script_directory, "job.sh"), path.join(args.input_dir, "job.sh"))
 
     # Step 4 - Clean dir
     rmtree(tmp_stats)
