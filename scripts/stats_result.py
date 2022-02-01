@@ -107,14 +107,36 @@ class Statistics:
             durations.update(stat_obj.exec_time_extract(idx))
 
         # Write a tsv to analyse durations
-        with open(path.join(self.res_dir, "durations.tsv"), "w") as fp:
+        tsv_file = path.join(self.res_dir, "durations.tsv")
+        with open(tsv_file, "w") as fp:
             print("protein\tlength\texec_duration\tmodel1_duration\tmodel2_duration\tmodel3_duration\tmodel4_duration\tmodel5_duration", file=fp)
             for protein in durations:
                 prot_durations, length = durations[protein]
                 str_durations = '\t'.join(str(x) for x in prot_durations)
                 print(f"{protein}\t{length}\t{str_durations}", file=fp)
+        self.plot_durations(tsv_file)
 
         return status, durations
+
+
+    def plot_durations(self, duration_tsv):
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
+        df = pd.read_csv(duration_tsv, sep="\t")
+
+        df.plot(kind="scatter", x="length", y="model1_duration")
+        plt.savefig(path.join(self.res_dir, "model1.png"))
+        df.plot(kind="scatter", x="length", y="model2_duration")
+        plt.savefig(path.join(self.res_dir, "model2.png"))
+        df.plot(kind="scatter", x="length", y="model3_duration")
+        plt.savefig(path.join(self.res_dir, "model3.png"))
+        df.plot(kind="scatter", x="length", y="model4_duration")
+        plt.savefig(path.join(self.res_dir, "model4.png"))
+        df.plot(kind="scatter", x="length", y="model5_duration")
+        plt.savefig(path.join(self.res_dir, "model5.png"))
+        df.plot(kind="scatter", x="length", y="exec_duration")
+        plt.savefig(path.join(self.res_dir, "total_exec_time.png"))
 
 
 if __name__ == "__main__":
@@ -128,3 +150,4 @@ if __name__ == "__main__":
 
     stat_obj = Statistics(args.directory, args.inputs_prefix, args.results_prefix, args.outdir)
     status, durations = stat_obj.compute_all_stats()
+
