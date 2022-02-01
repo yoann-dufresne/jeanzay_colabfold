@@ -25,10 +25,8 @@ class Statistics:
         res_path = path.join(self.global_dir, f"{self.res_prefix}{subdir_idx}")
 
         if not path.exists(in_path):
-            print(f"Directory {in_path} does not exist", file=stderr)
             return False
         if not path.exists(res_path):
-            print(f"Directory {res_path} does not exist", file=stderr)
             return False
 
         return True
@@ -37,14 +35,15 @@ class Statistics:
     def exec_status(self, subdir_idx):
         """ List all the proteins folded by a subprocess and check if the job is done.
         """
-        if not self.check_idx(subdir_idx):
-            return []
-
         in_path = path.join(self.global_dir, f"{self.in_prefix}{subdir_idx}")
+        inputs = [file for file in listdir(in_path) if file.endswith(".a3m")]
+
+        if not self.check_idx(subdir_idx):
+            return {file[:-4] : False for file in inputs}
+        
         res_path = path.join(self.global_dir, f"{self.res_prefix}{subdir_idx}")
 
         status = {}
-        inputs = [file for file in listdir(in_path) if file.endswith(".a3m")]
         for file in inputs:
             status[file[:-4]] = path.exists(path.join(res_path, f"{file[:-4]}.done.txt"))
 
@@ -101,10 +100,23 @@ class Statistics:
 
         status = {}
         durations = {}
-        # Compute the stats directory by directory
-        for idx in subdir_valid_indexes:
-            status.update(stat_obj.exec_status(idx))
-            durations.update(stat_obj.exec_time_extract(idx))
+
+        status_file = path.join(self.res_dir, "status.tsv")
+        with open(status_file, "w") as sf:
+            print("run\tnum_prot\tfolded", file=sf)
+            # Compute the stats directory by directory
+            for idx in subdir_valid_indexes:
+                # Update status
+                dir_status = stat_obj.exec_status(idx)
+                status.update(dir_status)
+                # Write status file
+                num_ok = 0
+                for s in dir_status.values():
+                    num_ok += 1 if s else 0
+                print(f"{self.in_prefix}{idx}\t{len(dir_status)}\t{str(num_ok)}", file=sf)
+
+                # update durations
+                durations.update(stat_obj.exec_time_extract(idx))
 
         # Write a tsv to analyse durations
         tsv_file = path.join(self.res_dir, "durations.tsv")
@@ -114,7 +126,6 @@ class Statistics:
                 prot_durations, length = durations[protein]
                 str_durations = '\t'.join(str(x) for x in prot_durations)
                 print(f"{protein}\t{length}\t{str_durations}", file=fp)
-        self.plot_durations(tsv_file)
 
         return status, durations
 
