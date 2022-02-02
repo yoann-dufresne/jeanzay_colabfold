@@ -7,11 +7,12 @@ import datetime
 
 
 class Statistics:
-    def __init__(self, global_dir, in_prefix, res_prefix, res_dir):
+    def __init__(self, global_dir, in_prefix, res_prefix, res_dir, verbose=False):
         self.global_dir = global_dir
         self.in_prefix = in_prefix
         self.res_prefix = res_prefix
         self.res_dir = res_dir
+        self.verbose = verbose
 
         # Generate output directory
         if not path.exists(self.res_dir):
@@ -59,7 +60,8 @@ class Statistics:
         # Check the logfile
         log_file = path.join(self.global_dir, f"{self.res_prefix}{subdir_idx}", "log.txt")
         if not path.exists(log_file):
-            print(f"Logfile {log_file} is missing", file=stderr)
+            if verbose:
+                print(f"Logfile {log_file} is missing", file=stderr)
             return []
 
         time_stats = {}

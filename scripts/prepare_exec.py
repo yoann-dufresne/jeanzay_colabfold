@@ -65,7 +65,7 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, arg
             elif key == "STDOUT":
                 print(f"#SBATCH --output={path.abspath(path.join(logdir, '%a.out'))}", file=slurm)
             elif key == "STDERR":
-                print(f"#SBATCH --output={path.abspath(path.join(logdir, '%a.err'))}", file=slurm)
+                print(f"#SBATCH --error={path.abspath(path.join(logdir, '%a.err'))}", file=slurm)
             elif key == "ARRAY":
                 print(f"#SBATCH --array={','.join(grouped_job)}%{args.num_gpu}", file=slurm)
             elif key == "WORKDIR": print(f"cd {path.abspath(submit_dir)}", file=slurm)
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     sp.run(command.split(" "), stdin=sys.stdin, stderr=sys.stderr)    
 
     # Step 3 - Generate slum files
+    print("Create slurm files...")
     slurm_template = path.join(script_directory, "submit_array_template.sh")
     generate_submit(args.input_dir, args.subdir_prefix, path.join(tmp_stats, "status.tsv"), slurm_template, args)
     shutil.copyfile(path.join(script_directory, "job.sh"), path.join(args.input_dir, "job.sh"))
