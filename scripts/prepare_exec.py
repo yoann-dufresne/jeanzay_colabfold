@@ -58,7 +58,7 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, arg
     with open(submit_template) as template, open(slurmfile, "w") as slurm:
         for line in template:
             key = line.strip().split("# ")[-1]
-            if key == "RAM": print(f"#SBATCH --mem={args.ram}", file=slurm)
+            if key == "RAM": print(f"#SBATCH --mem={args.ram}G", file=slurm)
             elif key == "CPU": print(f"#SBATCH --cpus-per-task={args.num_cores}", file=slurm)
             elif key == "TIME":
                 print(f"#SBATCH --time={min(100, args.max_mol_per_job)}:00:00", file=slurm)

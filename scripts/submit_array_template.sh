@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1            # Number of process per node
 #SBATCH --gres=gpu:1                   # GPU
 #SBATCH --hint=nomultithread           # No hyperthreading
-#SBATCH --mem=2                        # RAM
+#SBATCH --mem=2G                       # RAM
 #SBATCH --cpus-per-task=1              # CPU
 #SBATCH --time=00:30:00                # Max exec time (HH:MM:SS) # TIME
 #SBATCH --output=/linkhome/rech/genpro01/ubu39dm/yoann/test2/%a.out  # STDOUT
