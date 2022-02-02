@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--subdir-prefix', '-p', type=str, default='split_', help="Prefix used for the subdirectories to process.")
     parser.add_argument('--results-prefix', '-r', type=str, default='result_', help="Prefix used for the results subdirectories.")
     parser.add_argument('--num-gpu', '-g', type=int, default=4, help='Number of GPU tu use in parallel')
-    parser.add_argument('--ram', type=int, default=16, help='Number of RAM Go for each job')
+    parser.add_argument('--ram', type=int, default=16, help='Number of RAM GB for each job')
     parser.add_argument('--num-cores', type=int, default=4, help='Number of cores to use per job')
     parser.add_argument('--max-mol-per-job', '-m', type=int, default=10, help='Maximum number of molecule to fold using the same job')
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     script_directory = script_directory[:script_directory.rfind('/')]
 
     # Step 1 - Split new files in subdir
-    command = f"python3 {path.join(script_directory, 'split_job.py')} --directory {args.input_dir} --split-num 3 --subdir-prefix {args.subdir_prefix}"
+    command = f"python3 {path.join(script_directory, 'split_job.py')} --directory {args.input_dir} --split-num {args.max_mol_per_job} --subdir-prefix {args.subdir_prefix}"
     print(">", command)
     sp.run(command.split(" "), stdin=sys.stdin, stderr=sys.stderr)
 
