@@ -1,6 +1,7 @@
 from os import listdir, path, mkdir, rmdir, rename
 from shutil import rmtree
 from sys import stderr
+from copy import copy
 
 import argparse
 import datetime
@@ -85,7 +86,7 @@ class Statistics:
                 date_diff = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S,%f') - durations[0]
                 durations[0] = date_diff.total_seconds()
                 # Register the stats
-                time_stats[current_prot] = (durations, length)
+                time_stats[current_prot] = (copy(durations), length)
             # End of model exec, register time
             elif "took" in line:
                 _, _, model, _, duration, _, _, _, _, _ = line.split(" ")
@@ -158,6 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('--results-prefix', '-r', type=str, default="result_", help='Prefix name of the results subdirectories')
     parser.add_argument('--inputs-prefix', '-i', type=str, default="split_", help='Prefix name of the input subdirectories used to compute the results')
     parser.add_argument('--outdir', '-o', type=str, default="result_stats", help='Stats output directory')
+    parser.add_argument('--plots', '-p', action="store_true", default=False, help='Create the plots')
 
     args = parser.parse_args()
 
