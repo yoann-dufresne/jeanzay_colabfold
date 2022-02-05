@@ -61,7 +61,7 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, arg
             if key == "RAM": print(f"#SBATCH --mem={args.ram}G", file=slurm)
             elif key == "CPU": print(f"#SBATCH --cpus-per-task={args.num_cores}", file=slurm)
             elif key == "TIME":
-                print(f"#SBATCH --time={min(100, args.max_mol_per_job)}:00:00", file=slurm)
+                print(f"#SBATCH --time={min(20, args.max_mol_per_job)}:00:00", file=slurm)
             elif key == "STDOUT":
                 print(f"#SBATCH --output={path.abspath(path.join(logdir, '%a.out'))}", file=slurm)
             elif key == "STDERR":
