@@ -22,7 +22,7 @@ def mol_sizes(directory, filenames, verbose=False):
                     seqsize = len(line.strip())
                     break
 
-            sizes[name] = seqsize
+            sizes[filename[:-4]] = seqsize
 
     return sizes
 
