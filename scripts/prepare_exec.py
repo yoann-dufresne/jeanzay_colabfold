@@ -91,7 +91,7 @@ if __name__ == "__main__":
     script_directory = script_directory[:script_directory.rfind('/')]
 
     # Step 1 - Split new files in subdir
-    command = f"python3 {path.join(script_directory, 'split_job.py')} --directory {args.input_dir} --split-num {args.max_mol_per_job} --subdir-prefix {args.subdir_prefix}"
+    command = f"python3 {path.join(script_directory, 'split_job.py')} --directory {args.input_dir} --split-num {args.max_mol_per_job} --subdir-prefix {args.subdir_prefix} --verbose"
     print(">", command)
     sp.run(command.split(" "), stdin=sys.stdin, stderr=sys.stderr)
 

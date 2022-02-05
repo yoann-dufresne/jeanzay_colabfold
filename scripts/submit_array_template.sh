@@ -6,6 +6,7 @@
 #SBATCH --hint=nomultithread           # No hyperthreading
 #SBATCH --mem=2G                       # RAM
 #SBATCH --cpus-per-task=1              # CPU
+#SBATCH --qos=qos_gpu-t4
 #SBATCH --time=00:30:00                # Max exec time (HH:MM:SS) # TIME
 #SBATCH --output=/linkhome/rech/genpro01/ubu39dm/yoann/test2/%a.out  # STDOUT
 #SBATCH --error=/linkhome/rech/genpro01/ubu39dm/yoann/test2/%a.err   # STDERR
