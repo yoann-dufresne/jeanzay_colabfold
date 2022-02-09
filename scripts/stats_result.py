@@ -141,6 +141,7 @@ class Statistics:
     def compute_all_stats(self):
         status = {}
         durations = {}
+        all_scores = {}
 
         status_file = path.join(self.res_dir, "status.tsv")
         tsv_file = path.join(self.res_dir, "durations.tsv")
@@ -184,6 +185,7 @@ class Statistics:
 
                 # Get scores
                 scores = self.scores_extract(idx)
+                all_scores.update(scores)
                 for protein in scores:
                     rdrp, xdxp = scores[protein]
                     print(f"{rdrp}\t{xdxp}", file=sp)
@@ -192,7 +194,7 @@ class Statistics:
                 if clean_needed:
                     rmtree(sample_dir)
 
-        return status, durations
+        return status, durations, all_scores
 
 
     def untar(self, idx):
@@ -244,12 +246,26 @@ if __name__ == "__main__":
     parser.add_argument('--results-prefix', '-r', type=str, default="result_", help='Prefix name of the results subdirectories')
     parser.add_argument('--inputs-prefix', '-i', type=str, default="split_", help='Prefix name of the input subdirectories used to compute the results')
     parser.add_argument('--outdir', '-o', type=str, default="result_stats", help='Stats output directory')
+    parser.add_argument('--rdrp-threshold', '-t', type=float, default=.9, help='Rdrp threshold to keep molecule')
     parser.add_argument('--plots', '-p', action="store_true", default=False, help='Create the plots')
 
     args = parser.parse_args()
 
     stat_obj = Statistics(args.directory, args.inputs_prefix, args.results_prefix, args.outdir)
-    status, durations = stat_obj.compute_all_stats()
+    status, durations, scores = stat_obj.compute_all_stats()
     if args.plots:
         stat_obj.plot_durations(path.join(stat_obj.res_dir, "durations.tsv"))
         stat_obj.plot_scores(path.join(stat_obj.res_dir, "scores.tsv"))
+
+    over_threshold = 0
+    dominate = 0
+    for name in scores:
+        rdrp, xdxp = scores[name]
+
+        if rdrp >= args.rdrp_threshold:
+            over_threshold += 1
+            if rdrp > xdxp:
+                dominate += 1
+
+    print(f"Over threshold {over_threshold}/{len(scores)}")
+    print(f"Rdrp domination {dominate}/{len(scores)}")
