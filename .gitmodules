@@ -1,0 +1,3 @@
+[submodule "palmfold"]
+	path = palmfold
+	url = https://github.com/ababaian/palmfold.git
