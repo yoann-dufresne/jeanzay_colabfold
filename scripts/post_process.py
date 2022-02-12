@@ -56,7 +56,11 @@ def process_sample(batch_path, sample, args):
         with open(f"{pdb_file}.tmp", "w") as output:
             subprocess.run(realign_cmd.split(" "), stdout=output)
         # Get the realign
-        rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file}_realign.pdb")
+        try:
+            rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file}_realign.pdb")
+        except OSError:
+            rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file[:242]}_realign.pdb")
+
         for file in listdir(batch_path):
             if f"{pdb_file}_tmpalign" in file:
                 remove(file)
@@ -67,8 +71,9 @@ def process_sample(batch_path, sample, args):
     # Compress output
     outsample = path.join(batch_path, sample)
     tar_sample = path.join(batch_path, f"{sample}.tar.gz")
-    if not path.exists(outsample):
-        mkdir(outsample)
+    if path.exists(outsample):
+        rmtree(outsample)
+    mkdir(outsample)
     for file in listdir("."):
         if file.startswith(sample) and not path.isdir(file):
             copyfile(file, path.join(outsample, file))
@@ -86,8 +91,9 @@ def recompress(batch, args):
     if not path.isdir(batch_path):
         if batch_path.endswith(".tar.gz"):
             compressed = True
-            if not path.exists(batch_path[:-7]):
-                mkdir(batch_path[:-7])
+            if path.exists(batch_path[:-7]):
+                rmtree(batch_path[:-7])
+            mkdir(batch_path[:-7])
             subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
             workdir = batch_path[:-7]
 
