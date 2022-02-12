@@ -58,7 +58,7 @@ def process_sample(batch_path, sample, args):
         # Get the realign
         rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file}_realign.pdb")
         for file in listdir(batch_path):
-            if "_tmpalign" in file:
+            if f"{pdb_file}_tmpalign" in file:
                 remove(file)
         # Get the fastas
         subprocess.run(['python3', path.join(script_dir, "..", "palmfold", "palmgrab.py"), f"{pdb_file}.tmp", f"{pdb_file}.pp.fa", f"{pdb_file}.rc.fa"])
