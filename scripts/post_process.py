@@ -86,7 +86,8 @@ def recompress(batch, args):
     if not path.isdir(batch_path):
         if batch_path.endswith(".tar.gz"):
             compressed = True
-            mkdir(batch_path[:-7])
+            if not path.exists(batch_path[:-7]):
+                mkdir(batch_path[:-7])
             subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
             workdir = batch_path[:-7]
 
