@@ -2,6 +2,7 @@ from os import listdir, path, mkdir, rmdir, rename, getcwd, chdir, remove
 from shutil import rmtree, copyfile
 from sys import stderr
 from tqdm import tqdm
+from multiprocessing import Pool
 
 import argparse
 import subprocess
@@ -66,7 +67,8 @@ def process_sample(batch_path, sample, args):
     # Compress output
     outsample = path.join(batch_path, sample)
     tar_sample = path.join(batch_path, f"{sample}.tar.gz")
-    mkdir(outsample)
+    if not path.exists(outsample):
+        mkdir(outsample)
     for file in listdir("."):
         if file.startswith(sample) and not path.isdir(file):
             copyfile(file, path.join(outsample, file))
@@ -76,38 +78,35 @@ def process_sample(batch_path, sample, args):
     rename(tar_sample, path.join(args.outdir, f"{sample}.tar.gz"))
 
 
-def recompress(batchs, args):
-    # Process each batch independantly
-    for batch in batchs:
-        batch_path = path.join(args.directory, batch)
-        workdir = batch_path
-        print(batch_path)
-        # Uncompress if needed
-        compressed = False
-        if not path.isdir(batch_path):
-            if batch_path.endswith(".tar.gz"):
-                compressed = True
-                mkdir(batch_path[:-7])
-                subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
-                workdir = batch_path[:-7]
+def recompress(batch, args):
+    batch_path = path.join(args.directory, batch)
+    workdir = batch_path
+    # Uncompress if needed
+    compressed = False
+    if not path.isdir(batch_path):
+        if batch_path.endswith(".tar.gz"):
+            compressed = True
+            mkdir(batch_path[:-7])
+            subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
+            workdir = batch_path[:-7]
 
-            else:
-                print(f"unknown format for file {batch_path}. Skipping...", file=stderr)
-                continue
+        else:
+            print(f"unknown format for file {batch_path}. Skipping...", file=stderr)
+            return
 
-        # Get the samples from the directory
-        for f in listdir(workdir):
-            if f.endswith(".tm"):
-                process_sample(path.abspath(workdir), f[:-3], args)
+    # Get the samples from the directory
+    for f in listdir(workdir):
+        if f.endswith(".tm"):
+            process_sample(path.abspath(workdir), f[:-3], args)
 
-        # Clean the directory
-        if compressed:
-            rmtree(workdir)
-        if not args.keep:
-            if path.isdir(batch_path):
-                rmtree(batch_path)
-            else:
-                remove(batch_path)
+    # Clean the directory
+    if compressed:
+        rmtree(workdir)
+    if not args.keep:
+        if path.isdir(batch_path):
+            rmtree(batch_path)
+        else:
+            remove(batch_path)
 
 
 
@@ -117,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch-prefix', '-b', type=str, default="result_", help='Prefix name of the results subdirectories')
     parser.add_argument('--outdir', '-o', type=str, default="result_stats", help='Directory where to put compressed results')
     parser.add_argument('--rdrp-threshold', type=float, default=0, help='Rdrp threshold to realign molecules')
-    parser.add_argument('--thrads', type=int, default=1, help='Number of threads to use')
+    parser.add_argument('--threads', '-t', type=int, default=1, help='Number of threads to use')
     parser.add_argument('--keep', '-k', action="store_true", default=False, help="Keep the input files after compression")
 
     args = parser.parse_args()
@@ -137,4 +136,12 @@ if __name__ == "__main__":
 
     # Collect batchs
     batchs = frozenset(f for f in listdir(args.directory) if f.startswith(args.batch_prefix))
-    recompress(batchs, args)
+
+    # 
+    def recompress_pool(batch):
+        return recompress(batch, args)
+
+    # Process each batch independantly
+    with Pool(processes=args.threads) as pool:
+        for batch in tqdm(pool.imap_unordered(recompress_pool, batchs), total=len(batchs)):
+            pass
