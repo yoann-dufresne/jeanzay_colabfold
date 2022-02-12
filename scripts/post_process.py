@@ -37,7 +37,7 @@ def get_scores(tm_file):
 def process_sample(batch_path, sample, args):
     if not path.exists(batch_path):
         return
-        
+
     script_dir = path.dirname(path.realpath(__file__))
     current_dir = getcwd()
     chdir(batch_path)
@@ -146,7 +146,9 @@ if __name__ == "__main__":
 
     # Collect batchs
     batchs = frozenset(f for f in listdir(args.directory) if f.startswith(args.batch_prefix))
-
+    duplicate = frozenset(f for f in batchs if f"{f}.tar.gz" in batchs)
+    batchs -= duplicate
+    
     # 
     def recompress_pool(batch):
         return recompress(batch, args)
