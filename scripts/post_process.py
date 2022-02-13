@@ -62,7 +62,7 @@ def process_sample(batch_path, sample, args):
         try:
             rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file}_realign.pdb")
         except OSError:
-            rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file[:242]}_realign.pdb")
+            rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file[:200]}_realign.pdb")
 
         for file in listdir(batch_path):
             if f"{pdb_file}_tmpalign" in file:
@@ -94,11 +94,15 @@ def recompress(batch, args):
     if not path.isdir(batch_path):
         if batch_path.endswith(".tar.gz"):
             compressed = True
-            if path.exists(batch_path[:-7]):
-                rmtree(batch_path[:-7])
-            mkdir(batch_path[:-7])
-            subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
+
             workdir = batch_path[:-7]
+            if len(workdir) > 100:
+                workdir = workdir[:100]
+            if path.exists(workdir):
+                rmtree(workdir)
+            mkdir(workdir)
+            subprocess.run(["tar", "-xzf", batch_path, "-C", args.directory])
+
 
         else:
             print(f"unknown format for file {batch_path}. Skipping...", file=stderr)
