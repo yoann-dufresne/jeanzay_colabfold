@@ -119,7 +119,7 @@ def recompress(batch, args):
             processed &= process_sample(path.abspath(workdir), f[:-3], args)
 
     # Clean the directory
-    if compressed:
+    if compressed and path.exists(workdir):
         rmtree(workdir)
     if processed and not args.keep:
         if path.isdir(batch_path):
