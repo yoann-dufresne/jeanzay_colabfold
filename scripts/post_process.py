@@ -62,7 +62,9 @@ def process_sample(batch_path, sample, args):
         try:
             rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file}_realign.pdb")
         except OSError:
-            rename(f"{pdb_file}_tmpalign.pdb", f"{pdb_file[:200]}_realign.pdb")
+            print(f"{pdb_file}_tmpalign.pdb", file=stderr)
+            print("Filename too long. Skipping...", file=stderr)
+            return False
 
         for file in listdir(batch_path):
             if f"{pdb_file}_tmpalign" in file:
@@ -84,6 +86,8 @@ def process_sample(batch_path, sample, args):
     subprocess.run(["tar", "-czf", tar_sample, sample])
     chdir(current_dir)
     rename(tar_sample, path.join(args.outdir, f"{sample}.tar.gz"))
+
+    return True
 
 
 def recompress(batch, args):
@@ -109,9 +113,10 @@ def recompress(batch, args):
             return
 
     # Get the samples from the directory
+    processed = True
     for f in listdir(workdir):
         if f.endswith(".tm"):
-            process_sample(path.abspath(workdir), f[:-3], args)
+            processed &= process_sample(path.abspath(workdir), f[:-3], args)
 
     # Clean the directory
     if compressed:
