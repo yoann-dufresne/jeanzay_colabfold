@@ -90,6 +90,27 @@ def process_sample(batch_path, sample, args):
     return True
 
 
+def preprocess_files(directory, max_size=150):
+    tm_files = [f for f in listdir(directory) if f.endswith(".tm")]
+    
+    # Reduce file names rearding the tm file
+    corresponding_names = {}
+    for tm in tm_files:
+        name = tm[:-3]
+        if len(name) > max_size + 3:
+            corresponding_names[name] = name[:max_size]
+
+    # rewrite files
+    for file in listdir(directory):
+        for name in corresponding_names:
+            # If filename too long
+            if file.startswith(name):
+                gap_size = len(name) - len(corresponding_names[name])
+                # Rename the file omitting the middle of the filename
+                new_name = file[:max_size] + file[max_size+gap_size:]
+                rename(path.join(directory, file), path.join(directory, new_name))
+
+
 def recompress(batch, args):
     batch_path = path.join(args.directory, batch)
     workdir = batch_path
@@ -112,6 +133,9 @@ def recompress(batch, args):
             print(f"unknown format for file {batch_path}. Skipping...", file=stderr)
             return
 
+    # Preprocess the file names to reduce their size
+    preprocess_files(workdir)
+
     # Get the samples from the directory
     processed = True
     for f in listdir(workdir):
@@ -126,6 +150,8 @@ def recompress(batch, args):
             rmtree(batch_path)
         else:
             remove(batch_path)
+
+
 
 
 
@@ -157,7 +183,7 @@ if __name__ == "__main__":
     batchs = frozenset(f for f in listdir(args.directory) if f.startswith(args.batch_prefix))
     duplicate = frozenset(f for f in batchs if f"{f}.tar.gz" in batchs)
     batchs -= duplicate
-    
+
     # 
     def recompress_pool(batch):
         return recompress(batch, args)
