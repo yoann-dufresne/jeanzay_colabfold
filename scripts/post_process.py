@@ -36,7 +36,7 @@ def get_scores(tm_file):
 
 def process_sample(batch_path, sample, args):
     if not path.exists(batch_path):
-        return
+        return False
 
     script_dir = path.dirname(path.realpath(__file__))
     current_dir = getcwd()
