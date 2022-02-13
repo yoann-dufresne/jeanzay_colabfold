@@ -121,7 +121,7 @@ def recompress(batch, args):
     # Clean the directory
     if compressed:
         rmtree(workdir)
-    if not args.keep:
+    if processed and not args.keep:
         if path.isdir(batch_path):
             rmtree(batch_path)
         else:
