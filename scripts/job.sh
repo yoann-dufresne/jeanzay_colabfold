@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir result_${SLURM_ARRAY_TASK_ID}
-echo "colabfold_batch split_${SLURM_ARRAY_TASK_ID} result_${SLURM_ARRAY_TASK_ID}"
+echo "colabfold_batch --stop-at-score 85 split_${SLURM_ARRAY_TASK_ID} result_${SLURM_ARRAY_TASK_ID}"
 # Run colabfold
 colabfold_batch split_${SLURM_ARRAY_TASK_ID} result_${SLURM_ARRAY_TASK_ID}
 # Delete unneeded files
