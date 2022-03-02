@@ -10,7 +10,7 @@ import shutil
 
 
 
-def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, args):
+def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, job_template, args):
     # Detect job candidates
     job_idxs = [int(f[len(subdir_prefix):]) for f in listdir(submit_dir) if f.startswith(subdir_prefix)]
     job_idxs = set(job_idxs)
@@ -54,6 +54,8 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, arg
     # Write the submition script
     logdir = path.join(submit_dir, "logs")
     if not path.exists(logdir): mkdir(logdir)
+
+    # Modify the slurm submit template
     slurmfile = path.join(submit_dir, "submit.slurm")
     with open(submit_template) as template, open(slurmfile, "w") as slurm:
         for line in template:
@@ -72,6 +74,16 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, arg
             elif key == "JOB": print(f"srun sh ./job.sh", file=slurm)
             else:
                 print(line.strip(), file=slurm)
+
+    # Modify the job script template
+    jobfile = path.join(submit_dir, "job.sh")
+    with open(job_template) as template, open(jobfile, "w") as slurm:
+        for line in template:
+            if "colabfold_batch" in line:
+                idx = line.find("split_")
+                line = line[:idx] + subdir_prefix + line[idx+6]
+            print(line, file=jobfile)
+
 
 
 if __name__ == "__main__":
@@ -104,8 +116,8 @@ if __name__ == "__main__":
     # Step 3 - Generate slum files
     print("Create slurm files...")
     slurm_template = path.join(script_directory, "submit_array_template.sh")
-    generate_submit(args.input_dir, args.subdir_prefix, path.join(tmp_stats, "status.tsv"), slurm_template, args)
-    shutil.copyfile(path.join(script_directory, "job.sh"), path.join(args.input_dir, "job.sh"))
+    job_template = path.join(script_directory, "job.sh")
+    generate_submit(args.input_dir, args.subdir_prefix, path.join(tmp_stats, "status.tsv"), slurm_template, job_template, args)
 
     # Step 4 - Clean dir
     rmtree(tmp_stats)
