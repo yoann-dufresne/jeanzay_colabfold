@@ -36,20 +36,23 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, job
 
     job_idxs = list(job_idxs)
     job_idxs.sort()
-    # Group jobs for submition
-    start_job_idx = job_idxs[0]
-    end_job_idx = start_job_idx
     grouped_job = []
-    for i, job_idx in enumerate(job_idxs[:-1]):
-        # if directly the next
-        if job_idxs[i+1] == job_idx +1:
-            end_job_idx = job_idxs[i+1]
-        # Create new segment
-        else:
-            grouped_job.append((start_job_idx, end_job_idx))
-            start_job_idx = end_job_idx = job_idxs[i+1]
-    grouped_job.append((start_job_idx, end_job_idx))
-    grouped_job = [str(x[0]) if x[0] == x[1] else f"{x[0]}-{x[1]}" for x in grouped_job]
+    num_jobs = len(job_idxs)
+    if num_jobs < args.max_queue_size:
+        # Group jobs for submition
+        start_job_idx = job_idxs[0]
+        end_job_idx = start_job_idx
+        for i, job_idx in enumerate(job_idxs[:-1]):
+            # if directly the next
+            if job_idxs[i+1] == job_idx +1:
+                end_job_idx = job_idxs[i+1]
+            # Create new segment
+            else:
+                grouped_job.append((start_job_idx, end_job_idx))
+                start_job_idx = end_job_idx = job_idxs[i+1]
+        grouped_job.append((start_job_idx, end_job_idx))
+        grouped_job = [str(x[0]) if x[0] == x[1] else f"{x[0]}-{x[1]}" for x in grouped_job]
+
 
     # Write the submition script
     logdir = path.join(submit_dir, "logs")
@@ -69,11 +72,27 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, job
             elif key == "STDERR":
                 print(f"#SBATCH --error={path.abspath(path.join(logdir, '%a.err'))}", file=slurm)
             elif key == "ARRAY":
-                print(f"#SBATCH --array={','.join(grouped_job)}%{args.num_gpu}", file=slurm)
+                if num_jobs < args.max_queue_size:
+                    print(f"#SBATCH --array={','.join(grouped_job)}%{args.num_gpu}", file=slurm)
+                else:
+                    print(f"#SBATCH --array={job_idxs[0]}-{job_idxs[0]+args.max_queue_size//2}%{args.num_gpu}", file=slurm)
             elif key == "WORKDIR": print(f"cd {path.abspath(submit_dir)}", file=slurm)
             elif key == "JOB": print(f"srun sh ./job.sh", file=slurm)
             else:
                 print(line.strip(), file=slurm)
+
+    # Create a properties file
+    propertiesfile = path.join(submit_dir, "properties.sh")
+    with open(propertiesfile, "w") as prop:
+        print("#!/bin/bash", file=prop)
+        print(f"MAX_JOB_ID={job_idxs[-1]} # last job id to run", file=prop)
+        print(f"CURRENT_START={job_idxs[0]}", file=prop)
+        if num_jobs < args.max_queue_size:
+            print(f"CURRENT_STOP={job_idxs[-1]}", file=prop)
+        else:
+            print(f"CURRENT_STOP={job_idxs[0] + args.max_queue_size//2}", file=prop)
+        print(f"MAX_SIMULTANEOUS={args.num_gpu} # maximum number of simultaneous running jobs", file=prop)
+        print(f"MAX_SUBMIT={args.max_queue_size} # maximum number of jobs allowed in the queue", file=prop)
 
     # Modify the job script template
     jobfile = path.join(submit_dir, "job.sh")
@@ -92,6 +111,7 @@ if __name__ == "__main__":
     parser.add_argument('--subdir-prefix', '-p', type=str, default='split_', help="Prefix used for the subdirectories to process.")
     parser.add_argument('--results-prefix', '-r', type=str, default='result_', help="Prefix used for the results subdirectories.")
     parser.add_argument('--num-gpu', '-g', type=int, default=4, help='Number of GPU tu use in parallel')
+    parser.add_argument('--max-queue-size', '-q', type=int, default=10000, help='Maximum number of jobs that are allowed to pileup in the slurm queue.')
     parser.add_argument('--ram', type=int, default=16, help='Number of RAM GB for each job')
     parser.add_argument('--num-cores', type=int, default=4, help='Number of cores to use per job')
     parser.add_argument('--max-mol-per-job', '-m', type=int, default=10, help='Maximum number of molecule to fold using the same job')
