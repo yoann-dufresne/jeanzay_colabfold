@@ -96,12 +96,12 @@ def generate_submit(submit_dir, subdir_prefix, status_file, submit_template, job
 
     # Modify the job script template
     jobfile = path.join(submit_dir, "job.sh")
-    with open(job_template) as template, open(jobfile, "w") as slurm:
+    with open(job_template) as template, open(jobfile, "w") as job:
         for line in template:
             if "colabfold_batch" in line:
                 idx = line.find("split_")
                 line = line[:idx] + subdir_prefix + line[idx+6]
-            print(line, file=jobfile)
+            print(line, file=job)
 
 
 
