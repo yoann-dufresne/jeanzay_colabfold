@@ -1,6 +1,13 @@
 """
-colabdfold_search produces two a3m files with null separated msa in them.
-We merge the two searches and then split into one a3m file per msa.
+input:
+    The result of all concatenated colabdfold_search a3m files, which contain null-separated msa in them.
+
+    This script splits into one a3m file per msa.
+
+usage:
+
+    lz4 -d ../GMGCL.final.a3m.lz4  | python split_msas.py /dev/stdin out    
+
 """
 import logging
 from argparse import ArgumentParser
