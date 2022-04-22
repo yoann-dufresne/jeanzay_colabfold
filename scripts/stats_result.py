@@ -154,11 +154,11 @@ class Statistics:
             # Molecules not folded
             for d in self.in_directories - self.res_directories:
                 # Count the numbrer of proteins inside of the durectory
-                nump_rots = 0
+                num_prots = 0
                 for file in listdir(path.join(self.global_dir, f"{self.in_prefix}{d}")):
-                    if file.endswith(a3m):
-                        num_pots += 1
-                print(f"{d}\t{num_pots}\t{0}", file=sf)
+                    if file.endswith("a3m"):
+                        num_prots += 1
+                print(f"{d}\t{num_prots}\t{0}", file=sf)
 
             # Res folder without input
             for idx in tqdm(self.res_directories):
