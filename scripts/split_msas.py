@@ -72,7 +72,6 @@ def main():
         help="The final.a3m file, may also be stdin",
     )
     parser.add_argument("output_folder", help="Will contain all the a3m files")
-    parser.add_argument("--mmseqs", help="Path to the mmseqs2 binary", default="mmseqs")
     args = parser.parse_args()
     output_folder = Path(args.output_folder)
     output_folder.mkdir(exist_ok=True)
