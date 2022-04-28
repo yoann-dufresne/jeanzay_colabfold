@@ -28,56 +28,59 @@ seq_per_sample = count_sequences_per_sample()
 
 rule all:
     input:
-        # expand(f"data/{libname}_split/res_{{sample}}/fold_split/ready.lock", sample=global_samples)
-        expand(f"data/{libname}_split/res_{{sample}}/fold_split/folded.lock", sample=global_samples)
-        # expand("data/{libname}_split/res_{sample}/fold_split/folded.lock", sample=global_samples)
+        expand(f"data/{libname}_split/res_{{sample}}/{libname}-{{sample}}.tar.gz", sample=global_samples)
+        # f"data/{libname}_split/res_00/{libname}-00.tar.gz"
 
 rule msa:
     input:
         fa = "data/{libname}_split/{sample}.fa"
     output:
-        final_a3m = "data/{libname}_split/res_{sample}/final.a3m",
-        splited_a3m = "data/{libname}_split/res_{sample}/a3m_split/done.lock"
+        # final_a3m = "data/{libname}_split/res_{sample}/final.a3m",
+        splited_a3m = "data/{libname}_split/res_{sample}/aligned.lock"
     params:
         mem = "20G",
         qos = "dedicated"
     threads: 16
     run:
         # Align
-        shell(f"colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/")
-        # Split the multiple msa into multiple files
-        print("python3 scripts/split_msas.py {output.final_a3m} data/{wildcards.libname}_split/res_{wildcards.sample}/a3m_split/ && touch {output.splited_a3m}")
-        shell("python3 scripts/split_msas.py {output.final_a3m} data/{wildcards.libname}_split/res_{wildcards.sample}/a3m_split/ && touch {output.splited_a3m}")
+        shell(f"colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ && touch {{output.splited_a3m}}")
 
 
 rule folding_split:
     input:
-        "data/{libname}_split/res_{sample}/a3m_split/done.lock"
+        "data/{libname}_split/res_{sample}/aligned.lock"
     output:
         mol_ready = dynamic("data/{libname}_split/res_{sample}/fold_split/split_0/ready.lock")
     run:
         split_num = 0
         num_moved = 0
-        a3ms = [f for f in listdir(f"data/{wildcards.libname}_split/res_{wildcards.sample}/a3m_split/") if f.endswith("a3m")]
+        fold_dir = f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split"
+        if not path.exists(fold_dir):
+            mkdir(fold_dir)
+
+        a3ms = [f for f in listdir(f"data/{wildcards.libname}_split/res_{wildcards.sample}") if f.endswith("a3m")]
         for f in a3ms:
-            dirname = f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{split_num}/"
+            dirname = path.join(fold_dir, f"split_{split_num}/")
             # Create new bucket
             if num_moved == 0 and split_num != 0:
                 mkdir(dirname)
             # Move file into the current bucket
             rename(
-                f"data/{wildcards.libname}_split/res_{wildcards.sample}/a3m_split/" + f,
-                f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{split_num}/{f}"
+                f"data/{wildcards.libname}_split/res_{wildcards.sample}/" + f,
+                path.join(dirname, f)
             )
 
             # Update the numbers
             num_moved += 1
             if num_moved == mol_per_fold:
-                shell(f"touch data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{split_num}/ready.lock")
+                if split_num != 0:
+                    shell(f"touch {path.join(dirname, 'ready.lock')}")
                 num_moved = 0
                 split_num += 1
         if num_moved != 0:
             shell(f"touch data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{split_num}/ready.lock")
+        if not path.exists(path.join(fold_dir, "split_0", "ready.lock")):
+            shell(f"touch {path.join(fold_dir, 'split_0', 'ready.lock')}")
 
 
 rule fold:
@@ -89,7 +92,7 @@ rule fold:
         # Fold proteins
         folding_dir = str(output)[:str(output).rfind('/')]
         shell(f"colabfold_batch --stop-at-score 85 {folding_dir} {folding_dir}")
-        shell(f"cd {folding_dir} && rm cite.bibtex config.json *.png *_rank_[2-5]_* && cd -")
+        shell(f"cd {folding_dir} && rm cite.bibtex config.json *.png *_rank_[2-5]_* *_error_* *.done.txt && cd -")
         shell("touch {output}")
 
 
@@ -99,16 +102,38 @@ rule compress_sample:
     input:
         lambda wildcards: expand(f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{{fold_split}}/folded.lock", fold_split=range(ceil(seq_per_sample[wildcards.sample] / mol_per_fold)))
     output:
-        "data/{libname}_split/res_{sample}/fold_split/folded.lock"
+        "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
     run:
         sample_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "fold_split")
+        sample_compress_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "molecules")
+        if not path.exists(sample_compress_dir):
+            mkdir(sample_compress_dir)
 
-        # Compress by molecule
+        for split_dir in [f for f in listdir(sample_dir) if path.isdir(path.join(sample_dir, f))]:
+            split_dir = path.join(sample_dir, split_dir)
+            # Realign molecules
+            shell(f"python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
+        
+            # Compress by molecule
+            for mol_file in [f for f in listdir(split_dir) if f.endswith("a3m")]:
+                # Create 1 dir per molecule
+                mol_name = mol_file[:mol_file.rfind(".")]
+                mol_dir = path.join(split_dir, f"{wildcards.sample}-{mol_name}")
+                mkdir(mol_dir)
+                # Move usefull files into the corresponding dir
+                rename(path.join(split_dir, f"{mol_name}.a3m"), path.join(mol_dir, f"{mol_name}.a3m"))
+                rename(path.join(split_dir, f"{mol_name}.tm"), path.join(mol_dir, f"{mol_name}.tm"))
+                for file in [f for f in listdir(split_dir) if f.startswith(mol_name) and "_rank_1_" in f]:
+                    rename(path.join(split_dir, file), path.join(mol_dir, file))
+            # Compress mol dirs
+            for mol_dir in [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d)) and '-' in d]:
+                mol_name = mol_dir[mol_dir.rfind('-') + 1:]
+                tar_file = f"{wildcards.sample}-{mol_name}.tar.gz"
+                shell(f"cd {split_dir} && tar -czf {tar_file} {mol_dir} --remove-files && mv {tar_file} ../../molecules/ && cd -")
 
-        # Move compressed molecules
-
-        # Compress sample
-
-        # acknowledge
-        shell("touch {output}")
+        # Compress full sample
+        res_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}")
+        tar_file = f"{wildcards.libname}-{wildcards.sample}.tar.gz"
+        shell(f"cd {res_dir} && tar -czf {tar_file} molecules --remove-files && cd -")
+        shell(f"rm -r {path.join(res_dir, 'aligned.lock')} {path.join(res_dir, 'fold_split')}")
 

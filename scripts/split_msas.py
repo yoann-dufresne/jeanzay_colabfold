@@ -12,6 +12,7 @@ usage:
 import logging
 from argparse import ArgumentParser
 from pathlib import Path
+from sys import argv
 
 from tqdm import tqdm
 
@@ -62,6 +63,7 @@ def split_msa(input_file, output_folder: Path):
 
 
 def main():
+    print(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
     parser = ArgumentParser(
