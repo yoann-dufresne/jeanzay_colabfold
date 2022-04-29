@@ -29,21 +29,32 @@ seq_per_sample = count_sequences_per_sample()
 rule all:
     input:
         expand(f"data/{libname}_split/res_{{sample}}/{libname}-{{sample}}.tar.gz", sample=global_samples)
-        # f"data/{libname}_split/res_00/{libname}-00.tar.gz"
+    params:
+        time = "2:00:00",
+        job_name="output_Serratus",
+        mem = "20G",
+        gres = "",
+        qos = "hubbioit"
+    threads: 1
+    
 
 rule msa:
     input:
         fa = "data/{libname}_split/{sample}.fa"
     output:
-        # final_a3m = "data/{libname}_split/res_{sample}/final.a3m",
         splited_a3m = "data/{libname}_split/res_{sample}/aligned.lock"
     params:
-        mem = "20G",
-        qos = "dedicated"
+        time = "20:00:00",
+        job_name="alignment_Serratus",
+        mem = "250G",
+        gres = "",
+        qos = "hubbioit"
+    resources:
+        io = 1
     threads: 16
     run:
         # Align
-        shell(f"colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ && touch {{output.splited_a3m}}")
+        shell(f"module load Python/3.8.3 && colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ && touch {{output.splited_a3m}}")
 
 
 rule folding_split:
@@ -51,6 +62,14 @@ rule folding_split:
         "data/{libname}_split/res_{sample}/aligned.lock"
     output:
         mol_ready = dynamic("data/{libname}_split/res_{sample}/fold_split/split_0/ready.lock")
+    priority: 8
+    params:
+        time = "2:00:00",
+        job_name="splitdata_Serratus",
+        mem = "20G",
+        gres = "",
+        qos = "hubbioit"
+    threads: 1
     run:
         split_num = 0
         num_moved = 0
@@ -88,10 +107,20 @@ rule fold:
         "data/{libname}_split/res_{sample}/fold_split/split_0/ready.lock",
     output:
         "data/{libname}_split/res_{sample}/fold_split/split_{fold_split}/folded.lock"
+    priority: 9
+    params:
+        time = "2:00:00",
+        job_name="folding_Serratus",
+        mem = "20G",
+        gres = "--gres=gpu:A100:1",
+        qos = "gpu"
+    resources:
+        gpu = 1
+    threads: 1
     run:
         # Fold proteins
         folding_dir = str(output)[:str(output).rfind('/')]
-        shell(f"colabfold_batch --stop-at-score 85 {folding_dir} {folding_dir}")
+        shell(f"module load Python/3.8.3 cuda/11.2 && colabfold_batch --stop-at-score 85 {folding_dir} {folding_dir}")
         shell(f"cd {folding_dir} && rm cite.bibtex config.json *.png *_rank_[2-5]_* *_error_* *.done.txt && cd -")
         shell("touch {output}")
 
@@ -103,6 +132,14 @@ rule compress_sample:
         lambda wildcards: expand(f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{{fold_split}}/folded.lock", fold_split=range(ceil(seq_per_sample[wildcards.sample] / mol_per_fold)))
     output:
         "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
+    priority: 10
+    params:
+        time = "2:00:00",
+        job_name="compress_Serratus",
+        mem = "50G",
+        gres = "",
+        qos = "hubbioit"
+    threads: 1
     run:
         sample_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "fold_split")
         sample_compress_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "molecules")
@@ -112,7 +149,7 @@ rule compress_sample:
         for split_dir in [f for f in listdir(sample_dir) if path.isdir(path.join(sample_dir, f))]:
             split_dir = path.join(sample_dir, split_dir)
             # Realign molecules
-            shell(f"python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
+            shell(f"module load Python/3.8.3 && python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
         
             # Compress by molecule
             for mol_file in [f for f in listdir(split_dir) if f.endswith("a3m")]:
