@@ -19,10 +19,9 @@ The process will sort your fasta by sequence length and then split it in managab
 libname must be the name of your previous output dir without "\_split".
 db is the path to the database downloaded on fast access directory.
 mol_per_fold is the number of molecule to fold for each instance of collabfold (we recommand around 20 per batch).
-- Start the snakemake from the root directory of this project (example: snakemake --cores=16).
+- Start the snakemake using ```./snake_submit.sh```
 
 # Current work
 
-- Modification of the pipeline to match cluster submition technics
 - Example data for the snakemake testing
 - More command line friendly deployment process
