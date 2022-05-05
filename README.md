@@ -1,6 +1,6 @@
 # jeanzay_colabfold
 
-Scripts to run colabfold on jean zay supercomputer for multi billion of molecules.
+Scripts to run colabfold on jean zay supercomputer for multi millions of molecules.
 
 # Installation
 
