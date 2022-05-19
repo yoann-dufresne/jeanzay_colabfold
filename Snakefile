@@ -15,7 +15,7 @@ mol_per_fold = 2
 
 db = "/dev/null"
 if cluster == "jean_zay":
-    db = "/gpfswork/rech/yph/uep61bl/db"
+    db = "$SCRATCH/ColabFold/"
 elif cluster == "pasteur":
     db = "/pasteur/appa/scratch/rchikhi/colabfold_db/"
 
@@ -50,9 +50,11 @@ rule all:
     params:
         time = "2:00:00",
         job_name="output_Serratus",
-        mem = "20G",
+        #mem = "20G",
+	cpus = "1",
         options = "",
-        qos = "prepost",
+	qos = "qos_cpu-t3",
+        partition = "prepost",
         account = "mrb@cpu"
     threads: 1
     
@@ -63,11 +65,13 @@ rule msa:
     output:
         splited_a3m = "data/{libname}_split/res_{sample}/aligned.lock"
     params:
-        time = "50:00:00",
+        time = "20:00:00",
         job_name="alignment_Serratus",
-        mem = "250G",
+        #mem = "250G",
+	cpus = "5",
         options = "",
         qos = "qos_cpu-t4",
+	partition = "prepost",
         account = "mrb@cpu"
     resources:
         io = 1
@@ -86,8 +90,10 @@ rule folding_split:
     params:
         time = "12:00:00",
         job_name="splitdata_Serratus",
-        mem = "20G",
+        #mem = "20G",
+	cpus = "1",
         options = "",
+	partition = "prepost",
         qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
@@ -132,8 +138,10 @@ rule fold:
     params:
         time = f"{min(20, mol_per_fold)}:00:00",
         job_name="folding_Serratus",
-        mem = "20G",
+        #mem = "20G",
+	cpus = "10",
         options = "--gres=gpu:1",
+	partition = "gpu_p13",
         qos = "qos_gpu-t3",
         account = "mrb@v100"
     resources:
@@ -158,9 +166,11 @@ rule compress_sample:
     params:
         time = "20:00:00",
         job_name="compress_Serratus",
-        mem = "50G",
+        #mem = "50G",
+	cpus = "1",
         options = "--ntasks=1 --cpus-per-task=1 --hint=nomultithread",
-        qos = "prepost",
+	partitions = "prepost",
+        qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
     run:
