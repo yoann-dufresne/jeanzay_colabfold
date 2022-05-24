@@ -151,7 +151,7 @@ rule fold:
         # Fold proteins
         folding_dir = str(output)[:str(output).rfind('/')]
         shell(f"module load {python} {cuda} && colabfold_batch --stop-at-score 85 {folding_dir} {folding_dir}")
-        shell(f"cd {folding_dir} && rm cite.bibtex config.json *.png *_rank_[2-5]_* *_error_* *.done.txt && cd -")
+        shell(f"cd {folding_dir} && rm -f cite.bibtex config.json *.png *_rank_[2-5]_* *_error_* *.done.txt && cd -")
         shell("touch {output}")
 
 
@@ -169,7 +169,7 @@ rule compress_sample:
         #mem = "50G",
 	cpus = "1",
         options = "--ntasks=1 --cpus-per-task=1 --hint=nomultithread",
-	partitions = "prepost",
+	partition = "prepost",
         qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
@@ -205,5 +205,5 @@ rule compress_sample:
         res_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}")
         tar_file = f"{wildcards.libname}-{wildcards.sample}.tar.gz"
         shell(f"cd {res_dir} && tar -czf {tar_file} molecules --remove-files && cd -")
-        shell(f"rm -r {path.join(res_dir, 'aligned.lock')} {path.join(res_dir, 'fold_split')}")
+        shell(f"rm -rf {path.join(res_dir, 'aligned.lock')} {path.join(res_dir, 'fold_split')}")
 
