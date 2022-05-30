@@ -10,7 +10,7 @@ cluster = "jean_zay"
 
 
 # Variables for exec
-libname = "TST2"
+libname = "centroids"
 mol_per_fold = 2
 
 db = "/dev/null"
@@ -36,7 +36,7 @@ elif cluster == "jean_zay":
 def count_sequences_per_sample():
     counts = {}
     dir_path =  path.join("data", f"{libname}_split")
-    for f in [x for x in listdir(dir_path) if x.endswith(".fa")]:
+        for f in [x for x in listdir(dir_path) if x.endswith(".fa")]:
         sample_path = path.join(dir_path, f)
         stream = popen(f"grep '>' {sample_path} | wc -l")
         counts[f[:f.rfind(".")]] = int(stream.read())
@@ -78,7 +78,7 @@ rule msa:
     threads: 16
     run:
         # Align
-        shell(f"module load {python} && colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ && touch {{output.splited_a3m}}")
+        shell(f"module load {python} && colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ --db-load-mode 3 && touch {{output.splited_a3m}}")
 
 
 rule folding_split:
