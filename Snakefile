@@ -1,4 +1,4 @@
-from os import rename, listdir, mkdir, path, remove, popen
+from os import rename, listdir, mkdir, rmdir, path, remove, popen
 from math import ceil
 from time import sleep
 from random import randint
@@ -11,7 +11,7 @@ cluster = "jean_zay"
 
 # Variables for exec
 libname = "centroids"
-mol_per_fold = 2
+mol_per_fold = 20
 
 db = "/dev/null"
 if cluster == "jean_zay":
@@ -36,7 +36,7 @@ elif cluster == "jean_zay":
 def count_sequences_per_sample():
     counts = {}
     dir_path =  path.join("data", f"{libname}_split")
-        for f in [x for x in listdir(dir_path) if x.endswith(".fa")]:
+    for f in [x for x in listdir(dir_path) if x.endswith(".fa")]:
         sample_path = path.join(dir_path, f)
         stream = popen(f"grep '>' {sample_path} | wc -l")
         counts[f[:f.rfind(".")]] = int(stream.read())
@@ -181,25 +181,52 @@ rule compress_sample:
 
         for split_dir in [f for f in listdir(sample_dir) if path.isdir(path.join(sample_dir, f))]:
             split_dir = path.join(sample_dir, split_dir)
-            # Realign molecules
-            shell(f"module load {python} && python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
-        
+
+	    # Remove subdirs from previous failed exec
+	    subdirs = [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d))]
+	    for d in subdirs:
+                for f in listdir(path.join(split_dir, d)):
+                    rename(path.join(split_dir, d, f), path.join(split_dir, f))
+                rmdir(path.join(split_dir, d))
+
+
+	    # list molecules
+            molecules = [f for f in listdir(split_dir) if f.endswith("a3m")]
+
+	    realigned = False
+	    while not realigned:
+	        # Realign molecules
+                print(split_dir)
+            	shell(f"module load {python} && python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
+		realigned = True
+		# verify realign
+		for mol in molecules:
+                    name = mol[:-4]
+		    if not path.exists(path.join(split_dir, f"{name}.tm")):
+                        print(f"{name}.tm not found after realign. Retry...", file=stderr)
+			realigned = False
+
             # Compress by molecule
             for mol_file in [f for f in listdir(split_dir) if f.endswith("a3m")]:
                 # Create 1 dir per molecule
                 mol_name = mol_file[:mol_file.rfind(".")]
                 mol_dir = path.join(split_dir, f"{wildcards.sample}-{mol_name}")
-                mkdir(mol_dir)
+		if not path.exists(mol_dir):
+                    mkdir(mol_dir)
                 # Move usefull files into the corresponding dir
-                rename(path.join(split_dir, f"{mol_name}.a3m"), path.join(mol_dir, f"{mol_name}.a3m"))
-                rename(path.join(split_dir, f"{mol_name}.tm"), path.join(mol_dir, f"{mol_name}.tm"))
+                a3m_file = path.join(split_dir, f"{mol_name}.a3m")
+		if path.exists(a3m_file):
+                    rename(path.join(split_dir, f"{mol_name}.a3m"), path.join(mol_dir, f"{mol_name}.a3m"))
+                tm_file = path.join(split_dir, f"{mol_name}.tm")
+		if path.exists(tm_file):
+                    rename(path.join(split_dir, f"{mol_name}.tm"), path.join(mol_dir, f"{mol_name}.tm"))
                 for file in [f for f in listdir(split_dir) if f.startswith(mol_name) and "_rank_1_" in f]:
                     rename(path.join(split_dir, file), path.join(mol_dir, file))
             # Compress mol dirs
             for mol_dir in [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d)) and '-' in d]:
                 mol_name = mol_dir[mol_dir.rfind('-') + 1:]
                 tar_file = f"{wildcards.sample}-{mol_name}.tar.gz"
-                shell(f"cd {split_dir} && tar -czf {tar_file} {mol_dir} --remove-files && mv {tar_file} ../../molecules/ && cd -")
+                shell(f"cd {split_dir} && tar -czf {tar_file} {mol_dir} --remove-files && mv {tar_file} ../../molecules/ && cd - > /dev/null")
 
         # Compress full sample
         res_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}")
