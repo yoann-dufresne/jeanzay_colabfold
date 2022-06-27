@@ -5,8 +5,8 @@ from random import randint
 from sys import stderr
 
 
-cluster = "jean_zay"
-# cluster = "pasteur"
+# cluster = "jean_zay"
+cluster = "pasteur"
 
 
 # Variables for exec
@@ -14,10 +14,25 @@ libname = "TST2"
 mol_per_fold = 2
 
 db = "/dev/null"
+qos_cpu = ""
+qos_gpu = ""
+account = ""
+
 if cluster == "jean_zay":
     db = "$SCRATCH/ColabFold/"
+    account_cpu = "mrb@cpu"
+    account_gpu = "mrb@v100"
+    qos_cpu = "qos_cpu-t4"
+    qos_gpu = "qos_gpu-t3"
+    partition_cpu = "prepost"
+    partition_gpu = "gpu_p13"
 elif cluster == "pasteur":
     db = "/pasteur/appa/scratch/rchikhi/colabfold_db/"
+    account_cpu = account_gpu = "seqbio"
+    qos_cpu = "hubbioit"
+    qos_gpu = "qos_gpu-t3"
+    partition_cpu = "hubbioit"
+    partition_gpu = "gpu_p13"
 
 global_inputs = [str(f) for f in listdir(f"data/{libname}_split/") if f.endswith(".fa")]
 global_samples = [f[:f.rfind('.')] for f in global_inputs]
@@ -31,7 +46,6 @@ if cluster == "pasteur":
 elif cluster == "jean_zay":
     python = "python/3.9.12"
 
-#mrb@v100, yph@v100, mrb@cpu, yph@cpu,
 
 def count_sequences_per_sample():
     counts = {}
@@ -139,9 +153,9 @@ rule fold:
         time = f"{min(20, mol_per_fold)}:00:00",
         job_name="folding_Serratus",
         #mem = "20G",
-	cpus = "10",
+	    cpus = "10",
         options = "--gres=gpu:1",
-	partition = "gpu_p13",
+	    partition = "gpu_p13",
         qos = "qos_gpu-t3",
         account = "mrb@v100"
     resources:
