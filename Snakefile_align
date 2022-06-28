@@ -1,0 +1,67 @@
+from os import listdir
+
+
+# Variables for exec
+libname = "small"
+db = "/pasteur/appa/scratch/rchikhi/colabfold_db/"
+
+# --- Soft versions ---
+python = "Python/3.8.3"
+
+rule all:
+    input:
+        f"data/{libname}.ready"
+    params:
+        job_name="output_Serratus",
+        mem = "20G",
+	    qos = "hubbioit",
+        partition = "hubbioit"
+    threads: 1
+
+
+rule preprocess_sort_split_msa:
+    input:
+        "data/{libname}.fa"
+    output:
+        dynamic("data/{libname}_split/{sample}.fa")
+    threads: 1
+    params:
+        job_name="faSplit_Serratus",
+        mem = "20G",
+        qos = "hubbioit",
+        partition = "hubbioit"
+    run:
+        shell(f"module load {python} && sh scripts/preprocess.sh {{input}} data/{{wildcards.libname}}_split/")
+    
+
+rule msa:
+    input:
+        fa = "data/{libname}_split/{sample}.fa"
+    output:
+        splited_a3m = "data/{libname}_split/res_{sample}/aligned.lock"
+    params:
+        job_name="alignment_Serratus",
+        mem = "250G",
+        qos = "hubbioit",
+	    partition = "hubbioit"
+    threads: 16
+    run:
+        # Align
+        shell(f"module load {python} && colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ --db-load-mode 2 && touch {{output.splited_a3m}}")
+
+
+rule compress_sample:
+    input:
+        dynamic("data/{libname}_split/res_{sample}/aligned.lock")
+    output:
+        tar = "data/{libname}.tar.gz",
+        lock = "data/{libname}.ready"
+    priority: 10
+    params:
+        job_name="compress_a3m",
+        mem = "50G",
+	    partition = "hubbioit",
+        qos = "hubbioit"
+    threads: 1
+    run:
+        shell("cd data/ && tar -czf {wildcards.libname}.tar.gz {wildcards.libname}_split --remove-files && cd - && touch {output.lock}")
