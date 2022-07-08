@@ -9,13 +9,13 @@ from sys import stderr
 # Variables for exec
 scp_dir="/gpfswork/rech/yph/uep61bl/scp_data"
 libnames = [x[:-6] for x in listdir(scp_dir) if x.endswith(".ready")]
-libnames = ["small"]
+libname = libnames[0]
 mol_per_fold = 20
 
 db = "$SCRATCH/ColabFold/"
 
-global_inputs = [str(f) for f in listdir(f"data/{libname}_split/") if f.endswith(".fa")]
-global_samples = [f[:f.rfind('.')] for f in global_inputs]
+#global_inputs = [str(f) for f in listdir(f"data/{libname}_split/") if f.endswith(".fa")]
+#global_samples = [f[:f.rfind('.')] for f in global_inputs]
 
 
 # --- Soft versions ---
@@ -48,9 +48,9 @@ rule unzip_msas:
         time = "12:00:00",
         job_name="unzip_Serratus",
         #mem = "20G",
-    cpus = "1",
+        cpus = "1",
         options = "",
-    partition = "prepost",
+        partition = "prepost",
         qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
