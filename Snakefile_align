@@ -2,7 +2,7 @@ from os import listdir
 
 
 # Variables for exec
-libname = "small"
+libname = "speedtest"
 db = "/pasteur/appa/scratch/rchikhi/colabfold_db/"
 
 # --- Soft versions ---
@@ -26,26 +26,30 @@ rule all:
     params:
         job_name="global",
         mem = "20G",
-        partition = "hubbioit",
-        qos = "hubbioit"
+        partition = "human_hidden",
+        qos = "fast"
     threads: 1
 
 
-rule preprocess_sort_split_msa:
-    input:
-        "data/{libname}.fa"
+# rule preprocess_sort_split_msa:
+#     input:
+#         "data/{libname}.fa"
+#     output:
+#         dynamic("data/{libname}_split/{sample}.fa")
+#     priority: 2
+#     params:
+#         job_name="faSplit_Serratus",
+#         mem = "20G",
+#         qos = "fast",
+#         partition = "human_hidden"
+#     threads: 1
+#     run:
+#         shell(f"module load {python} && sh scripts/preprocess.sh {{input}} data/{{wildcards.libname}}_split/")
+
+
+rule base:
     output:
-        dynamic("data/{libname}_split/{sample}.fa")
-    priority: 2
-    params:
-        job_name="faSplit_Serratus",
-        mem = "20G",
-        qos = "hubbioit",
-        partition = "hubbioit"
-    threads: 1
-    run:
-        shell(f"module load {python} && sh scripts/preprocess.sh {{input}} data/{{wildcards.libname}}_split/")
-    
+        dynamic(f"data/{libname}_split/{{sample}}.fa")    
 
 rule msa:
     input:
@@ -54,14 +58,15 @@ rule msa:
         splited_a3m = "data/{libname}_split/res_{sample}/aligned.lock"
     priority: 1
     params:
-        job_name="alignment_Serratus",
+        job_name="speedtest",
         mem = "250G",
         qos = "fast",
-        partition = "common,dedicated"
-    threads: 16
+        partition = "human_hidden"
+    threads: 64
     run:
         # Align
-        shell(f"module load {python} && colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ --db-load-mode 2 --threads {{threads}} && touch {{output.splited_a3m}}")
+        shell("rm -f speed_{threads}.txt && touch speed_{threads}.txt")
+        shell(f"module load {python} && time (colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ --db-load-mode 2 --threads {{threads}}) 2>> speed_{{threads}}.txt && touch {{output.splited_a3m}}")
 
 
 rule compress_msa_sample:
@@ -74,8 +79,9 @@ rule compress_msa_sample:
         job_name = "compress_a3m",
         mem = "20G",
         qos = "fast",
-        partition = "common,dedicated"
+        partition = "human_hidden"
     threads: 1
     priority: 10
     run:
-        shell("cd data/{wildcards.libname}_split/ && tar -ckzf {wildcards.sample}.tar.gz res_{sample} && ssh ydufresn@192.168.148.50 -t \"rsync {wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && cd - && touch {output}")
+        shell("touch {output}")
+        # shell("cd data/{wildcards.libname}_split/ && tar -ckzf {wildcards.sample}.tar.gz res_{sample} && ssh ydufresn@192.168.148.50 -t \"rsync {wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && cd - && touch {output}")
