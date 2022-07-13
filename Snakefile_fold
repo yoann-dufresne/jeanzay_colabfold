@@ -8,15 +8,19 @@ from sys import stderr
 
 # Variables for exec
 scp_dir="/gpfswork/rech/yph/uep61bl/scp_data"
-libnames = [x[:-6] for x in listdir(scp_dir) if x.endswith(".ready")]
+libdirs = [x for x in listdir(scp_dir) if path.isdir(x)]
+libnames = []
+for name in libdirs:
+    tars = [x for x in listdir(path.join(scp_dir, name) if x.endswith(".tar.gz"))
+    if len(tars) > 0:
+        libnames.append(name)
+
+if len(libnames) == 0:
+    print("Nothing to be done")
+    exit(0)
+    
 libname = libnames[0]
 mol_per_fold = 20
-
-db = "$SCRATCH/ColabFold/"
-
-#global_inputs = [str(f) for f in listdir(f"data/{libname}_split/") if f.endswith(".fa")]
-#global_samples = [f[:f.rfind('.')] for f in global_inputs]
-
 
 # --- Soft versions ---
 cuda = "cuda/11.2"
