@@ -16,5 +16,4 @@ if [ $running -le 2 ]; then
 fi
 
 
-#sleep 60m
-sbatch --begin=now+3600 -p prepost -A mrb@cpu --output="out/submit_%j.out" --error="out/submit_%j.err" ./snake_submit.sh
+sbatch --begin=now+600 -p prepost -A mrb@cpu --output="out/submit_%j.out" --error="out/submit_%j.err" ./jz_run_snakemake.sh

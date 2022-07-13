@@ -25,14 +25,14 @@ python = "python/3.9.12"
 
 rule all:
     input:
-        dynamic(f"data/{libname}_split/res_{{sample}}/{libname}-{{sample}}.tar.gz")
+        dynamic(f"data/{libname}_split/res_{{sample}}/sent.lock")
     params:
         time = "2:00:00",
         job_name="output_Serratus",
         #mem = "20G",
-	cpus = "1",
+        cpus = "1",
         options = "",
-	qos = "qos_cpu-t3",
+        qos = "qos_cpu-t3",
         partition = "prepost",
         account = "mrb@cpu"
     threads: 1
@@ -40,9 +40,9 @@ rule all:
 
 rule unzip_msas:
     input:
-        f"{scp_dir}/{{libname}}.tar.gz"
+        f"{scp_dir}/{{libname}}/{{wildcards.sample}}.tar.gz"
     output:
-        dynamic("data/{libname}_split/res_{sample}/aligned.lock")
+        "data/{libname}_split/res_{sample}/aligned.lock"
     priority: 1
     params:
         time = "12:00:00",
@@ -55,23 +55,23 @@ rule unzip_msas:
         account = "mrb@cpu"
     threads: 1
     run:
-        shell("mv {input} {output}")
-        shell("tar -xzkf data/{wildcards.libname}.tar.gz && rm data/{wildcards.libname}.tar.gz")
+        shell("mkdir -p data/{libname}_split/ && mv {input} data/{libname}_split/")
+        shell("cd data/{libname}_split/ && tar -xzkf {wildcards.sample}.tar.gz && rm {wildcards.sample}.tar.gz && cd -")
 
 
 rule folding_split:
     input:
-        dynamic("data/{libname}_split/res_{sample}/aligned.lock")
+        "data/{libname}_split/res_{sample}/aligned.lock"
     output:
         mol_ready = dynamic("data/{libname}_split/res_{sample}/fold_split/split_{idx}/ready.lock")
-    priority: 8
+    priority: 7
     params:
         time = "12:00:00",
         job_name="splitdata_Serratus",
         #mem = "20G",
-	cpus = "1",
+        cpus = "1",
         options = "",
-	partition = "prepost",
+        partition = "prepost",
         qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
@@ -107,17 +107,17 @@ rule folding_split:
 
 rule fold:
     input:
-        dynamic("data/{libname}_split/res_{sample}/fold_split/split_{idx}/ready.lock"),
+        "data/{libname}_split/res_{sample}/fold_split/split_{idx}/ready.lock",
     output:
         "data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock"
-    priority: 9
+    priority: 8
     params:
         time = f"{min(20, mol_per_fold)}:00:00",
         job_name="folding_Serratus",
         #mem = "20G",
-	cpus = "1",
+        cpus = "1",
         options = "--gres=gpu:1",
-	partition = "gpu_p13",
+        partition = "gpu_p13",
         qos = "qos_gpu-t3",
         account = "mrb@v100"
     resources:
@@ -132,20 +132,19 @@ rule fold:
 
 
 
-
 rule compress_sample:
     input:
         dynamic("data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock")
     output:
         "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
-    priority: 10
+    priority: 9
     params:
         time = "20:00:00",
         job_name="compress_Serratus",
         #mem = "50G",
-	cpus = "1",
+        cpus = "1",
         options = "--ntasks=1 --cpus-per-task=1 --hint=nomultithread",
-	partition = "prepost",
+        partition = "prepost",
         qos = "qos_cpu-t3",
         account = "mrb@cpu"
     threads: 1
@@ -158,43 +157,43 @@ rule compress_sample:
         for split_dir in [f for f in listdir(sample_dir) if path.isdir(path.join(sample_dir, f))]:
             split_dir = path.join(sample_dir, split_dir)
 
-	    # Remove subdirs from previous failed exec
-	    subdirs = [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d))]
-	    for d in subdirs:
+            # Remove subdirs from previous failed exec
+            subdirs = [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d))]
+            for d in subdirs:
                 for f in listdir(path.join(split_dir, d)):
                     rename(path.join(split_dir, d, f), path.join(split_dir, f))
                 rmdir(path.join(split_dir, d))
 
 
-	    # list molecules
+            # list molecules
             molecules = [f for f in listdir(split_dir) if f.endswith("a3m")]
 
-	    realigned = False
-	    while not realigned:
-	        # Realign molecules
+            realigned = False
+            while not realigned:
+                # Realign molecules
                 print(split_dir)
-            	shell(f"module load {python} && python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
-		realigned = True
-		# verify realign
-		for mol in molecules:
+                shell(f"module load {python} && python3 palmfold/palmfold.py -p palmfold/pol/ -t 0 -d {split_dir}")
+                realigned = True
+                # verify realign
+                for mol in molecules:
                     name = mol[:-4]
-		    if not path.exists(path.join(split_dir, f"{name}.tm")):
+                    if not path.exists(path.join(split_dir, f"{name}.tm")):
                         print(f"{name}.tm not found after realign. Retry...", file=stderr)
-			realigned = False
+                        realigned = False
 
             # Compress by molecule
             for mol_file in [f for f in listdir(split_dir) if f.endswith("a3m")]:
                 # Create 1 dir per molecule
                 mol_name = mol_file[:mol_file.rfind(".")]
                 mol_dir = path.join(split_dir, f"{wildcards.sample}-{mol_name}")
-		if not path.exists(mol_dir):
+                if not path.exists(mol_dir):
                     mkdir(mol_dir)
                 # Move usefull files into the corresponding dir
                 a3m_file = path.join(split_dir, f"{mol_name}.a3m")
-		if path.exists(a3m_file):
+                if path.exists(a3m_file):
                     rename(path.join(split_dir, f"{mol_name}.a3m"), path.join(mol_dir, f"{mol_name}.a3m"))
                 tm_file = path.join(split_dir, f"{mol_name}.tm")
-		if path.exists(tm_file):
+                if path.exists(tm_file):
                     rename(path.join(split_dir, f"{mol_name}.tm"), path.join(mol_dir, f"{mol_name}.tm"))
                 for file in [f for f in listdir(split_dir) if f.startswith(mol_name) and "_rank_1_" in f]:
                     rename(path.join(split_dir, file), path.join(mol_dir, file))
@@ -209,3 +208,26 @@ rule compress_sample:
         tar_file = f"{wildcards.libname}-{wildcards.sample}.tar.gz"
         shell(f"cd {res_dir} && tar -czf {tar_file} molecules --remove-files && cd -")
         shell(f"rm -rf {path.join(res_dir, 'aligned.lock')} {path.join(res_dir, 'fold_split')}")
+
+
+
+rule s3_upload:
+    input:
+        "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
+    output:
+        "data/{libname}_split/res_{sample}/sent.lock"
+    priority: 10
+    params:
+        time = "20:00:00",
+        job_name="compress_Serratus",
+        cpus = "1",
+        options = "--ntasks=1 --cpus-per-task=1 --hint=nomultithread",
+        partition = "prepost",
+        qos = "qos_cpu-t3",
+        account = "mrb@cpu"
+    threads: 1
+    run:
+        # Test cmd
+        shell("cp {input} $WORK/results/ && rm {input} && touch {output}")
+        # production cmd
+        # shell("/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {input} s3://serratus-fold/{wildcards.libname}/{wildcards.libname}-{wildcards.sample}.tar.gz && rm {input} && touch {output}")
