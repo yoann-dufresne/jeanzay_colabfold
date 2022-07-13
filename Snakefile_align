@@ -46,10 +46,13 @@ rule all:
 #     run:
 #         shell(f"module load {python} && sh scripts/preprocess.sh {{input}} data/{{wildcards.libname}}_split/")
 
+msa_threads = 16
 
 rule base:
     output:
-        dynamic(f"data/{libname}_split/{{sample}}.fa")    
+        dynamic(f"data/{libname}_split/{{sample}}.fa")
+    run:
+        shell(f"rm -f speed_{msa_threads}.txt && touch speed_{msa_threads}.txt")
 
 rule msa:
     input:
@@ -62,10 +65,9 @@ rule msa:
         mem = "250G",
         qos = "fast",
         partition = "human_hidden"
-    threads: 64
+    threads: msa_threads
     run:
         # Align
-        shell("rm -f speed_{threads}.txt && touch speed_{threads}.txt")
         shell(f"module load {python} && time (colabfold_search {{input.fa}} {db} data/{{wildcards.libname}}_split/res_{{wildcards.sample}}/ --db-load-mode 2 --threads {{threads}}) 2>> speed_{{threads}}.txt && touch {{output.splited_a3m}}")
 
 
