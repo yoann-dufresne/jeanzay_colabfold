@@ -78,4 +78,4 @@ rule compress_msa_sample:
     threads: 1
     priority: 10
     run:
-        shell("cd data/{wildcards.libname}_split/ && tar -ckzf {wildcards.sample}.tar.gz res_{sample} && ssh ydufresn@192.168.148.50 -t \"rsync {wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && cd - && touch {output}")
+        shell("cd data/{wildcards.libname}_split/ && tar -ckzf {wildcards.sample}.tar.gz res_{wildcards.sample} && ssh ydufresn@192.168.148.50 -t \"rsync $PWD/{wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && cd - && touch {output}")
