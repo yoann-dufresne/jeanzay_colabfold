@@ -33,10 +33,10 @@ for name in libdirs:
         samples[name].extend([x[:-7] for x in listdir(path.join(scp_dir, name)) if x.endswith(".tar.gz")])
 
 
-print(len(libnames), libnames)
+# Remove locks from previous partial computations
 for lib in libnames:
-    print(lib, ": ", " ".join(samples[lib]))
-exit(0)
+    if path.exists(path.join("data", f"{lib}_split", "sent.lock")):
+        remove(path.join("data", f"{lib}_split", "sent.lock"))
 
 
 mol_per_fold = 20
@@ -48,7 +48,7 @@ python = "python/3.9.12"
 
 rule all:
     input:
-        expand("data/{libname}_split/res_{sample}/sent.lock", libname=libnames, sample=samples)
+        expand("data/{libname}_split/sent.lock", libname=libnames)
     params:
         time = "2:00:00",
         job_name="output_Serratus",
@@ -59,6 +59,25 @@ rule all:
         partition = "prepost",
         account = "mrb@cpu"
     threads: 1
+
+
+rule sample_expand:
+    input:
+        expand("data/{libname}_split/res_{sample}/sent.lock", sample=samples[wildcards.libname])
+    output:
+        "data/{libname}_split/sent.lock"
+    params:
+        time = "2:00:00",
+        job_name="output_Serratus",
+        #mem = "20G",
+        cpus = "1",
+        options = "",
+        qos = "qos_cpu-t3",
+        partition = "prepost",
+        account = "mrb@cpu"
+    threads: 1
+    run:
+        shell("touch {output}")
     
 
 rule unzip_msas:
