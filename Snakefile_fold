@@ -63,7 +63,7 @@ rule all:
 
 rule sample_expand:
     input:
-        expand("data/{libname}_split/res_{sample}/sent.lock", sample=samples[wildcards.libname])
+        lambda wildcards: expand("data/{{libname}}_split/res_{sample}/sent.lock", sample=samples[wildcards.libname])
     output:
         "data/{libname}_split/sent.lock"
     params:
@@ -129,7 +129,7 @@ rule folding_split:
         for f in a3ms:
             dirname = path.join(fold_dir, f"split_{split_num}/")
             # Create new bucket
-            if num_moved == 0 and split_num != 0:
+            if num_moved == 0 and not path.exist(dirname):
                 mkdir(dirname)
             # Move file into the current bucket
             rename(
