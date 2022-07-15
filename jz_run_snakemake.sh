@@ -20,4 +20,4 @@ fi
 
 
 mkdir -p out/submit
-sbatch --begin=now+600 -p prepost -A mrb@cpu --output="out/submit/submit_%j.out" --error="out/submit/submit_%j.err" ./jz_run_snakemake.sh
+#sbatch --begin=now+600 -p prepost -A mrb@cpu --output="out/submit/submit_%j.out" --error="out/submit/submit_%j.err" ./jz_run_snakemake.sh
