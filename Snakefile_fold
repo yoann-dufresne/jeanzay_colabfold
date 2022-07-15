@@ -8,14 +8,14 @@ from sys import stderr
 libnames = []
 samples = {}
 # find libs to process in the data directory
-data_dirs = [x for x in listdir("data") if (path.isdir(x) and x.endswith("_split"))]
+data_dirs = [x for x in listdir("data") if (path.isdir(path.join("data", x)) and x.endswith("_split"))]
 libnames = [x[:-6] for x in data_dirs]
 for name in libnames:
-    for file in listdir():
+    for file in listdir(path.join("data", f"{name}_split")):
         if not file.endswith(".fa"):
             continue
         sample = file[:-3]
-        if path.exists(path.join("data", f"{name}_split", f"res_{sample}", "sent.lock")):
+        if path.exists(path.join("data", f"{name}_split", f"res_{sample}", "aligned.lock")):
             if name not in samples:
                 samples[name] = []
             samples[name].append(sample)
@@ -32,14 +32,11 @@ for name in libdirs:
             samples[name] = []
         samples[name].extend([x[:-7] for x in listdir(path.join(scp_dir, name)) if x.endswith(".tar.gz")])
 
-print("scp_dir ? ", path.exists(scp_dir))
-
 # Remove locks from previous partial computations
 for lib in libnames:
     if path.exists(path.join("data", f"{lib}_split", "sent.lock")):
         remove(path.join("data", f"{lib}_split", "sent.lock"))
 
-print("scp_dir ? ", path.exists(scp_dir))
 
 mol_per_fold = 20
 
@@ -100,11 +97,8 @@ rule unzip_msas:
         account = "mrb@cpu"
     threads: 1
     run:
-        print("scp_dir ? ", path.exists(scp_dir))
         shell("mkdir -p data/{wildcards.libname}_split/ && mv {input} data/{wildcards.libname}_split/")
-        print("scp_dir ? ", path.exists(scp_dir))
         shell("cd data/{wildcards.libname}_split/ && tar -xzkf {wildcards.sample}.tar.gz && rm {wildcards.sample}.tar.gz && mv res_{wildcards.sample}/{wildcards.sample}.fa . && cd -")
-        print("scp_dir ? ", path.exists(scp_dir))
 
 
 rule folding_split:
@@ -131,12 +125,11 @@ rule folding_split:
         if not path.exists(fold_dir):
             mkdir(fold_dir)
 
-        print("scp_dir ? ", path.exists(scp_dir))
         a3ms = [f for f in listdir(f"data/{wildcards.libname}_split/res_{wildcards.sample}") if f.endswith("a3m")]
         for f in a3ms:
             dirname = path.join(fold_dir, f"split_{split_num}/")
             # Create new bucket
-            if num_moved == 0 and not path.exist(dirname):
+            if num_moved == 0 and not path.exists(dirname):
                 mkdir(dirname)
             # Move file into the current bucket
             rename(
@@ -165,7 +158,7 @@ rule fold:
         time = f"{min(20, mol_per_fold)}:00:00",
         job_name="folding_Serratus",
         #mem = "20G",
-        cpus = "1",
+        cpus = "10",
         options = "--gres=gpu:1",
         partition = "gpu_p13",
         qos = "qos_gpu-t3",
