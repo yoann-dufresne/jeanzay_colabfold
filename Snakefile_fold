@@ -32,12 +32,14 @@ for name in libdirs:
             samples[name] = []
         samples[name].extend([x[:-7] for x in listdir(path.join(scp_dir, name)) if x.endswith(".tar.gz")])
 
+print("scp_dir ? ", path.exists(scp_dir))
 
 # Remove locks from previous partial computations
 for lib in libnames:
     if path.exists(path.join("data", f"{lib}_split", "sent.lock")):
         remove(path.join("data", f"{lib}_split", "sent.lock"))
 
+print("scp_dir ? ", path.exists(scp_dir))
 
 mol_per_fold = 20
 
@@ -98,8 +100,11 @@ rule unzip_msas:
         account = "mrb@cpu"
     threads: 1
     run:
+        print("scp_dir ? ", path.exists(scp_dir))
         shell("mkdir -p data/{wildcards.libname}_split/ && mv {input} data/{wildcards.libname}_split/")
+        print("scp_dir ? ", path.exists(scp_dir))
         shell("cd data/{wildcards.libname}_split/ && tar -xzkf {wildcards.sample}.tar.gz && rm {wildcards.sample}.tar.gz && mv res_{wildcards.sample}/{wildcards.sample}.fa . && cd -")
+        print("scp_dir ? ", path.exists(scp_dir))
 
 
 rule folding_split:
@@ -119,12 +124,14 @@ rule folding_split:
         account = "mrb@cpu"
     threads: 1
     run:
+        print("scp_dir ? ", path.exists(scp_dir))
         split_num = 0
         num_moved = 0
         fold_dir = f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split"
         if not path.exists(fold_dir):
             mkdir(fold_dir)
 
+        print("scp_dir ? ", path.exists(scp_dir))
         a3ms = [f for f in listdir(f"data/{wildcards.libname}_split/res_{wildcards.sample}") if f.endswith("a3m")]
         for f in a3ms:
             dirname = path.join(fold_dir, f"split_{split_num}/")
