@@ -15,7 +15,7 @@ if [ $running -le 2 ]; then
     # fi
 
     mkdir -p out/snakemake
-    sbatch -p prepost -A mrb@cpu --qos="qos_cpu-t4" --time="20:00:00" --output="out/snakemake/run_%j.out" --error="out/snakemake/run_%j.err" ./run_snakemake.sh | cut -d " " -f 4
+    sbatch -p prepost -A mrb@cpu --qos="qos_cpu-t4" --time="20:00:00" --output="out/snakemake/run_%j.out" --error="out/snakemake/run_%j.err" ./run_snakemake.sh
 fi
 
 
