@@ -43,8 +43,8 @@ for name in libnames:
             # foldings done but not finished
             for fs in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split")):
                 for f in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split", fs)):
-                if f.startswith("split_"):
-                    foldings[name][sample] += 1
+                    if f.startswith("split_"):
+                        foldings[name][sample] += 1
 
 # Find libs/samples/number-of-folding-needed to process in the scp directory
 scp_dir = "/gpfswork/rech/yph/uep61bl/scp_data"
