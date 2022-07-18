@@ -41,8 +41,11 @@ for name in libnames:
                     foldings[name][sample] += 1
             foldings[name][sample] = ceil(foldings[name][sample] / mol_per_fold)
             # foldings done but not finished
-            for fs in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split")):
-                for f in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split", fs)):
+            fold_split = path.join("data", f"{name}_split", f"res_{sample}", "fold_split")
+            if not path.fold_split.exists():
+                continue
+            for fs in listdir(fold_split):
+                for f in listdir(path.join(fold_split, fs)):
                     if f.startswith("split_"):
                         foldings[name][sample] += 1
 
