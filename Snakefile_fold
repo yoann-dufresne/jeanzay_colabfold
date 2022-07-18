@@ -153,7 +153,7 @@ rule fold:
         "data/{libname}_split/res_{sample}/fold_split/split_{idx}/ready.lock",
     output:
         "data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock"
-    priority: 8
+    priority: 10
     params:
         time = f"{min(20, mol_per_fold)}:00:00",
         job_name="folding_Serratus",
@@ -180,7 +180,7 @@ rule compress_sample:
         dynamic("data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock")
     output:
         "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
-    priority: 9
+    priority: 10
     params:
         time = "20:00:00",
         job_name="compress_Serratus",
@@ -193,7 +193,7 @@ rule compress_sample:
     threads: 1
     run:
         sample_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "fold_split")
-        sample_compress_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", "molecules")
+        sample_compress_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}", f"molecules_{wildcards.sample}")
         if not path.exists(sample_compress_dir):
             mkdir(sample_compress_dir)
         global_tm = path.join(sample_compress_dir, f"{wildcards.libname}_{wildcards.sample}.tm")
@@ -241,9 +241,9 @@ rule compress_sample:
                 if path.exists(tm_file):
                     # Rewrite tm file in global tm
                     with open(tm_file) as tm_in, open(global_tm, "a") as tm_out:
-                        tm_in.readline():
+                        tm_in.readline()
                         for line in tm_in:
-                            print(f"{wildcards.libname}{line.strip()}", file=tm_out)
+                            print(f"{wildcards.libname}_{line.strip()}", file=tm_out)
                     # move tm to compress
                     rename(path.join(split_dir, f"{mol_name}.tm"), path.join(mol_dir, f"{mol_name}.tm"))
                 for file in [f for f in listdir(split_dir) if f.startswith(mol_name) and "_rank_1_" in f]:
@@ -252,12 +252,12 @@ rule compress_sample:
             for mol_dir in [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d)) and '-' in d]:
                 mol_name = mol_dir[mol_dir.rfind('-') + 1:]
                 tar_file = f"{wildcards.sample}-{mol_name}.tar.gz"
-                shell(f"cd {split_dir} && tar -czf {tar_file} {mol_dir} --remove-files && mv {tar_file} ../../molecules/ && cd - > /dev/null")
+                shell(f"cd {split_dir} && tar -czf {tar_file} {mol_dir} --remove-files && mv {tar_file} ../../molecules_{wildcards.sample}/ && cd - > /dev/null")
 
         # Compress full sample
         res_dir = path.join("data", f"{wildcards.libname}_split", f"res_{wildcards.sample}")
         tar_file = f"{wildcards.libname}-{wildcards.sample}.tar.gz"
-        shell(f"cd {res_dir} && tar -czf {tar_file} molecules --remove-files && cd -")
+        shell(f"cd {res_dir} && tar -czf {tar_file} molecules_{wildcards.sample} --remove-files && cd -")
         shell(f"rm -rf {path.join(res_dir, 'aligned.lock')} {path.join(res_dir, 'fold_split')}")
 
 
@@ -270,7 +270,7 @@ rule s3_upload:
     priority: 10
     params:
         time = "20:00:00",
-        job_name="compress_Serratus",
+        job_name="upload_Serratus",
         cpus = "1",
         options = "--ntasks=1 --cpus-per-task=1 --hint=nomultithread",
         partition = "prepost",
@@ -279,6 +279,6 @@ rule s3_upload:
     threads: 1
     run:
         # Test cmd
-        shell("cp {input} $WORK/results/ && rm {input} && touch {output}")
+        # shell("cp {input} $WORK/results/ && rm {input} && touch {output}")
         # production cmd
-        # shell("/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {input} s3://serratus-fold/{wildcards.libname}/{wildcards.libname}-{wildcards.sample}.tar.gz && rm {input} && touch {output}")
+        shell("/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {input} s3://serratus-fold/{wildcards.libname}/{wildcards.libname}-{wildcards.sample}.tar.gz && rm {input} && touch {output}")
