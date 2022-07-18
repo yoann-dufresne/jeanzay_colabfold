@@ -249,7 +249,7 @@ rule fold:
 
 rule compress_sample:
     input:
-        lambda wildcards: expand("data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock", idx=list(range(foldings[wildcards.libname][wildcards.sample])))
+        lambda wildcards: expand(f"data/{wildcards.libname}_split/res_{wildcards.sample}/fold_split/split_{{idx}}/folded.lock", idx=list(range(foldings[wildcards.libname][wildcards.sample])))
     output:
         "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
     priority: 10
