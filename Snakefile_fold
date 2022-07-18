@@ -3,10 +3,21 @@ from math import ceil
 from time import sleep
 from random import randint
 from sys import stderr
+import tarfile as tf
 
+
+# ==========================================================================================
+# ==========================================================================================
+#                               Precompute libs/samples
+# ==========================================================================================
+# ==========================================================================================
+
+
+mol_per_fold = 20
 
 libnames = []
 samples = {}
+foldings = {}
 # find libs to process in the data directory
 data_dirs = [x for x in listdir("data") if (path.isdir(path.join("data", x)) and x.endswith("_split"))]
 libnames = [x[:-6] for x in data_dirs]
@@ -19,8 +30,23 @@ for name in libnames:
             if name not in samples:
                 samples[name] = []
             samples[name].append(sample)
+            # Precompute the number of folding operation needed
+            if name not in foldings:
+                foldings[name] = {}
+            if sample not in foldings[name]:
+                foldings[name][sample] = 0
+            # foldings not done yet
+            for f in listdir(path.join("data", f"{name}_split", f"res_{sample}")):
+                if f.endswith("a3m"):
+                    foldings[name][sample] += 1
+            foldings[name][sample] = ceil(foldings[name][sample] / mol_per_fold)
+            # foldings done but not finished
+            for fs in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split")):
+                for f in listdir(path.join("data", f"{name}_split", f"res_{sample}", "fold_split", fs)):
+                if f.startswith("split_"):
+                    foldings[name][sample] += 1
 
-# Find libs/samples to process in the scp directory
+# Find libs/samples/number-of-folding-needed to process in the scp directory
 scp_dir = "/gpfswork/rech/yph/uep61bl/scp_data"
 libdirs = [x for x in listdir(scp_dir) if path.isdir(path.join(scp_dir, x))]
 for name in libdirs:
@@ -32,13 +58,35 @@ for name in libdirs:
             samples[name] = []
         samples[name].extend([x[:-7] for x in listdir(path.join(scp_dir, name)) if x.endswith(".tar.gz")])
 
+        # Precompute the number of folding operation needed
+        for tar in tars:
+            sample = tar[:-7]
+            if name not in foldings:
+                foldings[name] = {}
+            if sample not in foldings[name]:
+                foldings[name][sample] = 0
+            tar = path.join(scp_dir, name, tar)
+
+            with tf.open(tar, mode="r|gz") as t:
+                for mem in t.getmembers():
+                    if mem.name.endswith(".a3m"):
+                        foldings[name][sample] += 1
+            foldings[name][sample] = ceil(foldings[name][sample] / mol_per_fold)
+
 # Remove locks from previous partial computations
 for lib in libnames:
     if path.exists(path.join("data", f"{lib}_split", "sent.lock")):
         remove(path.join("data", f"{lib}_split", "sent.lock"))
 
 
-mol_per_fold = 20
+
+# ==========================================================================================
+# ==========================================================================================
+#                               Main pipeline
+# ==========================================================================================
+# ==========================================================================================
+
+
 
 # --- Soft versions ---
 cuda = "cuda/11.2"
@@ -177,7 +225,7 @@ rule fold:
 
 rule compress_sample:
     input:
-        dynamic("data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock")
+        lambda wildcards: expand("data/{libname}_split/res_{sample}/fold_split/split_{idx}/folded.lock", idx=list(range(foldings[wildcards.libname][wildcards.sample])))
     output:
         "data/{libname}_split/res_{sample}/{libname}-{sample}.tar.gz"
     priority: 10
