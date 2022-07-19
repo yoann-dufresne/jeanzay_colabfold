@@ -219,8 +219,6 @@ rule folding_split:
                 ready = path.join(candidate_dir, "ready.lock")
                 if not path.exists(ready):
                     open(ready, "a").close()
-            else:
-                break
 
         # Add new files into split directories
         a3ms = [f for f in listdir(f"data/{wildcards.libname}_split/res_{wildcards.sample}") if f.endswith("a3m")]
