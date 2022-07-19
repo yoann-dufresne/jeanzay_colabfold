@@ -61,9 +61,12 @@ for name in libnames:
             fold_split = path.join("data", f"{name}_split", f"res_{sample}", "fold_split")
             print(fold_split)
             if not path.exists(fold_split):
+                print("not exists")
                 continue
             for fs in listdir(fold_split):
+                print(fs)
                 for f in listdir(path.join(fold_split, fs)):
+                    print(f)
                     if f.startswith("split_"):
                         foldings[name][sample] += 1
 
