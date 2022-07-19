@@ -39,7 +39,6 @@ for name in libnames:
         if path.exists(path.join("data", f"{name}_split", f"res_{sample}", "sent.lock")):
             # clean the directory and continue
             rmtree(path.join("data", f"{name}_split", f"res_{sample}"))
-            print("clean", path.join("data", f"{name}_split", f"res_{sample}"))
             continue
         # Compute the sample number datastructures
         if path.exists(path.join("data", f"{name}_split", f"res_{sample}", "aligned.lock")):
@@ -59,19 +58,15 @@ for name in libnames:
             foldings[name][sample] = ceil(foldings[name][sample] / mol_per_fold)
             # foldings done but not finished
             fold_split = path.join("data", f"{name}_split", f"res_{sample}", "fold_split")
-            print(fold_split)
             if not path.exists(fold_split):
-                print("not exists")
                 continue
             for fs in listdir(fold_split):
-                print(fs)
                 for f in listdir(path.join(fold_split, fs)):
-                    print(f)
                     if f.endswith("a3m"):
                         foldings[name][sample] += 1
 
 # # Find libs/samples/number-of-folding-needed to process in the scp directory
-# scp_dir = "/gpfswork/rech/yph/uep61bl/scp_data"
+scp_dir = "/gpfswork/rech/yph/uep61bl/scp_data"
 # libdirs = [x for x in listdir(scp_dir) if path.isdir(path.join(scp_dir, x))]
 # for name in libdirs:
 #     # Limit the number of sample to process at the same time (snakemake speedup)
