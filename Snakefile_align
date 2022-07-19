@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, remove, path
 
 
 # Variables for exec
@@ -57,9 +57,9 @@ rule msa:
     priority: 1
     params:
         job_name="alignment_Serratus",
-        mem = "250G",
+        mem = "240G",
         qos = "fast",
-        partition = "common,dedicated"
+        partition = "common,dedicated,human_hidden"
     threads: 16
     run:
         shell("rm -rf data/{wildcards.libname}_split/res_{wildcards.sample}/")
@@ -81,10 +81,10 @@ rule compress_msa_sample:
     threads: 1
     priority: 10
     run:
-        shell("cd data/{wildcards.libname}_split/ && cp {wildcards.sample}.fa res_{wildcards.sample} && tar -ckzf {wildcards.sample}.tar.gz res_{wildcards.sample} && ssh ydufresn@192.168.148.50 -t \"rsync $PWD/{wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && rm $PWD/{wildcards.sample}.tar.gz res_{wildcards.sample}/{wildcards.sample}.fa && cd -")
+        shell("cd data/{wildcards.libname}_split/ && cp {wildcards.sample}.fa res_{wildcards.sample} && tar -ckzf {wildcards.sample}.tar.gz res_{wildcards.sample} && ssh ydufresn@192.168.148.50 -t \"rsync $PWD/{wildcards.sample}.tar.gz $JZ:/gpfswork/rech/yph/uep61bl/scp_data/{wildcards.libname}/\" && rm -Sf $PWD/{wildcards.sample}.tar.gz res_{wildcards.sample}/{wildcards.sample}.fa && cd -")
 
         # Clean the res directory
-        res_folder = "data/{wildcards.libname}_split/res_{wildcards.sample}"
+        res_folder = f"data/{wildcards.libname}_split/res_{wildcards.sample}"
         for f in listdir(res_folder):
             if f.endswith(".lock"):
                 continue
