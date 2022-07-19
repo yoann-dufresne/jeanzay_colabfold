@@ -27,7 +27,7 @@ for name in libnames:
     # Limit the number of sample to process at the same time (snakemake speedup)
     if num_samples >= max_sample_to_process:
         break
-    for file in listdir(path.join("data", f"{name}_split")):
+    for file in ["23038.fa"]:#listdir(path.join("data", f"{name}_split")):
         # Limit the number of sample to process at the same time (snakemake speedup)
         if num_samples >= max_sample_to_process:
             break
@@ -97,7 +97,7 @@ for name in libnames:
 #                         foldings[name][sample] += 1
 #             foldings[name][sample] = ceil(foldings[name][sample] / mol_per_fold)
 
-print(foldings["CFDL"])
+print(foldings["CFDL"]["23038"])
 exit(0)
 
 # Remove locks from previous partial computations
