@@ -305,7 +305,8 @@ rule compress_sample:
         for split_dir in [f for f in listdir(sample_dir) if path.isdir(path.join(sample_dir, f))]:
             split_dir = path.join(sample_dir, split_dir)
             if not path.exists(path.join(split_dir, "folded.lock")):
-                
+                print("folded.lock not found in", split_dir, file=stderr)
+                exit(1)
 
             # Remove subdirs from previous failed exec
             subdirs = [d for d in listdir(split_dir) if path.isdir(path.join(split_dir, d))]
