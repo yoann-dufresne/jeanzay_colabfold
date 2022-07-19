@@ -245,8 +245,7 @@ rule folding_split:
             # Update the numbers
             num_moved += 1
             if num_moved == mol_per_fold:
-                if split_num != 0:
-                    shell(f"touch {path.join(dirname, 'ready.lock')}")
+                shell(f"touch {path.join(dirname, 'ready.lock')}")
                 num_moved = 0
                 split_num += 1
         if num_moved != 0:
