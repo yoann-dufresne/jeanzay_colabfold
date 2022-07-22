@@ -2,7 +2,8 @@
 
 # Compress each individual molecules from the sample into a tar.gz and move it to the molecule dir
 
-from os import path, listdir, mkdir, rename
+from os import path, listdir, mkdir, remove
+from shutil import copy
 import sys
 from sys import stderr, argv
 # Import the root directory to be able to call palmfold
@@ -15,7 +16,7 @@ from palmfold.palmfold import main as palmfold_main
 split_dir = argv[1]
 split_path = split_dir.split("/")
 sample = split_path[-3]
-sample = split_path[sample.find("_")+1:]
+sample = sample[sample.find("_")+1:]
 lib = split_path[-4]
 lib = lib[:lib.find("_")]
 mol_dir = path.join(*split_path[:-2], f"molecules_{sample}")
@@ -37,7 +38,7 @@ if not path.exists(global_tm):
         print("PDBchain1\tPDBchain2\tTM1\tTM2\tRMSD\tID1\tID2\tIDali\tL1\tL2\tLali", file=gtm)
 
 # Score and compress all the molecules
-palmfold_main(path.join(root_dir, "palmfold", "pol"), split_dir, 0)
+palmfold_main(split_dir, path.join(root_dir, "palmfold", "pol"), 0)
 
 # Sort the files by molecules and filetype
 mol_files = {mol:{} for mol in molecules}
@@ -81,19 +82,22 @@ for mol in molecules:
         missing_error = True
         continue
     # read the molecule tm file
-    with open(mol_files[mol]["tm"]) as tmf:
+    with open(path.join(split_dir, mol_files[mol]["tm"])) as tmf:
         tmf.readline()
-        scores.extends(tmf.readlines().split("\n"))
+        scores.extend([x.strip() for x in tmf.readlines()])
     # Create a tar.gz
     tar_dir = f"{sample}_{mol}"
     archive = f"{sample}_{mol}.tar.gz"
-    mkdir(tar_dir)
+    if not path.exists(tar_dir):
+        mkdir(tar_dir)
     for ext in mol_files[mol]:
         file = mol_files[mol][ext]
-        rename(path.join(split_dir, file), path.join(tar_dir, file))
+        copy(path.join(split_dir, file), path.join(tar_dir, file))
+        remove(path.join(split_dir, file))
     complete_process = subprocess.run(["tar", "-czf", archive, tar_dir])
     # move the tar to the right dir
-    rename(archive, path.join(mol_dir, archive))
+    copy(archive, path.join(mol_dir, archive))
+    remove(archive)
 
 # Write the global tm file
 with open(global_tm, "a") as gtm:
