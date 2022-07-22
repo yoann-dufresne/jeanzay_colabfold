@@ -4,7 +4,7 @@
 
 from os import path, listdir, mkdir, remove
 from shutil import copy
-import sys
+import sys, subprocess
 from sys import stderr, argv
 # Import the root directory to be able to call palmfold
 root_dir = path.dirname(path.dirname(path.abspath(__file__)))
@@ -14,6 +14,8 @@ from palmfold.palmfold import main as palmfold_main
 
 # Extract the sample name and the needed paths
 split_dir = argv[1]
+if split_dir[-1] == '/':
+    split_dir = split_dir[:-1]
 split_path = split_dir.split("/")
 sample = split_path[-3]
 sample = sample[sample.find("_")+1:]
@@ -37,6 +39,7 @@ if not path.exists(global_tm):
     with open(global_tm, "a") as gtm:
         print("PDBchain1\tPDBchain2\tTM1\tTM2\tRMSD\tID1\tID2\tIDali\tL1\tL2\tLali", file=gtm)
 
+
 # Score and compress all the molecules
 palmfold_main(split_dir, path.join(root_dir, "palmfold", "pol"), 0)
 
@@ -59,6 +62,8 @@ for file in listdir(split_dir):
         mol_files[mol]["json"] = file
     elif file.endswith(".tm"):
         mol_files[file[:-3]]["tm"] = file
+    elif file.endswith(".fa"):
+        mol_files[file[:-3]][file[-5:]] = file
 
 missing_error = False
 scores = []
@@ -94,7 +99,7 @@ for mol in molecules:
         file = mol_files[mol][ext]
         copy(path.join(split_dir, file), path.join(tar_dir, file))
         remove(path.join(split_dir, file))
-    complete_process = subprocess.run(["tar", "-czf", archive, tar_dir])
+    complete_process = subprocess.run(["tar", "--remove-files", "-czf", archive, tar_dir])
     # move the tar to the right dir
     copy(archive, path.join(mol_dir, archive))
     remove(archive)
