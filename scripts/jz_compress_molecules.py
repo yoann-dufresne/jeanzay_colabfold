@@ -100,6 +100,10 @@ for mol in molecules:
         copy(path.join(split_dir, file), path.join(tar_dir, file))
         remove(path.join(split_dir, file))
     complete_process = subprocess.run(["tar", "--remove-files", "-czf", archive, tar_dir])
+    if complete_process.returncode != 0:
+        print("Error: Compression command finished on non 0 return value", file=stderr)
+        print(complete_process.stderr, file=stderr)
+        exit(complete_process.returncode)
     # move the tar to the right dir
     copy(archive, path.join(mol_dir, archive))
     remove(archive)
