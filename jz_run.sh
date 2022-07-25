@@ -4,7 +4,7 @@ set -e
 
 mkdir -p out && mkdir -p out/unzip
 
-sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=unzip --hint=nomultithread --output=out/unzip/%j.out --error=out/unzip/%j.err --export=tar_file=$WORK/scp_data/CFDL/tst.tar.gz ./scripts/jz_unzip.sh
+sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=unzip --hint=nomultithread --output=out/unzip/%j.out --error=out/unzip/%j.err --export=tar_file=$WORK/scp_data/CFDL/100.tar.gz ./scripts/jz_unzip.sh
 
 
 

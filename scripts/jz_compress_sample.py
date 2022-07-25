@@ -50,15 +50,15 @@ if complete_process.returncode != 0:
 
 
 # debug command
-rename(archive, path.join(getenv("WORK"), "results", archive))
-# # real command
-# complete_process = subprocess.run(["/gpfswork/rech/yph/uep61bl/software/aws/dist/aws", "s3", "cp", archive, f"s3://serratus-fold/{lib}/{lib}-{sample}.tar.gz"])
-# if complete_process.returncode != 0:
-#     print("Error: s3 upload finished on non 0 return value", file=stderr)
-#     print(complete_process.stderr, file=stderr)
-#     exit(complete_process.returncode)
-# remove(archive)
-# rmtree(sample_dir)
+# rename(archive, path.join(getenv("WORK"), "results", archive))
+# real command
+complete_process = subprocess.run(["/gpfswork/rech/yph/uep61bl/software/aws/dist/aws", "s3", "cp", archive, f"s3://serratus-fold/{lib}/{lib}-{sample}.tar.gz"])
+if complete_process.returncode != 0:
+    print("Error: s3 upload finished on non 0 return value", file=stderr)
+    print(complete_process.stderr, file=stderr)
+    exit(complete_process.returncode)
+remove(archive)
+rmtree(sample_dir)
 
 
 # End of pipeline \o/
