@@ -4,4 +4,4 @@ set -e
 
 module load python/3.9.12
 
-python3 scripts/jz_split.py $tar_file
+python3 scripts/jz_unzip.py $tar_file
