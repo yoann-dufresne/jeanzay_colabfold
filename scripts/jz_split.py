@@ -95,6 +95,7 @@ for fold_split in listdir(fold_dir):
 
     # Trigger a compression per split directory after folding completed
     cmd = f"sbatch -c 1  --qos=qos_cpu-t3 -p prepost -A mrb@cpu --time=1:00:00 --job-name=mol_compress --hint=nomultithread --output=out/compress/mol_%j.out --error=out/compress/mol_%j.err --dependency=afterok:{fold_job_id} --export=split_dir={fold_path} ./scripts/jz_compress_molecules.sh"
+    complete_process = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
     if complete_process.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
         print(complete_process.stderr, file=stderr)
@@ -103,6 +104,7 @@ for fold_split in listdir(fold_dir):
 
 # Compress the full sample after all foldings/molecule compression completion
 cmd = f"sbatch -c 1  --qos=qos_cpu-t3 -p prepost -A mrb@cpu --time=6:00:00 --job-name=sample_compress --hint=nomultithread --output=out/compress/sample_%j.out --error=out/compress/sample_%j.err --dependency=afterok:{','.join(ids)} --export=split_dir={sample_dir} ./scripts/jz_compress_sample.sh"
+complete_process = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
 if complete_process.returncode != 0:
     print("Error: sbatch command finished on non 0 return value", file=stderr)
     print(complete_process.stderr, file=stderr)
