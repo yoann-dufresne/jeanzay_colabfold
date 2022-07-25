@@ -102,7 +102,7 @@ runnings = {
     "split": 0,
     "fold": 0,
     "compress_mol": 0,
-    "compress_sample": 0
+    "compress_sample": 0,
     "other": 0
 }
 
@@ -148,7 +148,9 @@ if not path.exists(path.join("out", "unzip")):
 
 while available > 100 and len(jobs["unzip"]) > 0:
     available -= 70
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=unzip --hint=nomultithread --output=out/unzip/%j.out --error=out/unzip/%j.err --export=tar_file={jobs['unzip'].pop()} ./scripts/jz_unzip.sh"
+    file = jobs["unzip"].pop()
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=unzip --hint=nomultithread --output=out/unzip/%j.out --error=out/unzip/%j.err --export=tar_file={file} ./scripts/jz_unzip.sh"
+    print("start",file)
     ret = subprocess.run(cmd.split(' '))
     if ret.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
