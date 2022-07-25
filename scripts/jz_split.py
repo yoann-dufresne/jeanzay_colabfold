@@ -1,5 +1,5 @@
 from os import path, listdir, rename, mkdir, remove, chdir, getcwd
-from shutil import copy
+from shutil import copy, rmtree
 import subprocess
 from sys import stderr, argv
 
@@ -83,7 +83,6 @@ ids = []
 for fold_split in listdir(fold_dir):
     # Create one fold sbatch per fold directory
     fold_path = path.join(fold_dir, fold_split)
-    print(fold_path)
 
     cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=fold_dir={fold_path} ./scripts/jz_fold.sh"
     complete_process = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
@@ -93,11 +92,9 @@ for fold_split in listdir(fold_dir):
         exit(complete_process.returncode)
 
     fold_job_id = complete_process.stdout.split('\n')[0].strip().split(' ')[-1]
-    print(fold_job_id)
 
     # Trigger a compression per split directory after folding completed
     cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=mol_compress --hint=nomultithread --output=out/compress/mol_%j.out --error=out/compress/mol_%j.err --dependency=afterok:{fold_job_id} --export=split_dir={fold_path} ./scripts/jz_compress_molecules.sh"
-    print(cmd)
     complete_process = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
     if complete_process.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
@@ -106,10 +103,11 @@ for fold_split in listdir(fold_dir):
     ids.append(complete_process.stdout.split('\n')[0].strip().split(' ')[-1])
 
 # Compress the full sample after all foldings/molecule compression completion
-cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=6:00:00 --job-name=sample_compress --hint=nomultithread --output=out/compress/sample_%j.out --error=out/compress/sample_%j.err --dependency=afterok:{','.join(ids)} --export=split_dir={sample_dir} ./scripts/jz_compress_sample.sh"
-print(cmd)
+cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost -A mrb@cpu --time=6:00:00 --job-name=sample_compress --hint=nomultithread --output=out/compress/sample_%j.out --error=out/compress/sample_%j.err --dependency=afterok:{','.join(ids)} --export=split_dir={sample_dir} ./scripts/jz_compress_sample.sh"
 complete_process = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
 if complete_process.returncode != 0:
     print("Error: sbatch command finished on non 0 return value", file=stderr)
     print(complete_process.stderr, file=stderr)
     exit(complete_process.returncode)
+
+

@@ -3,7 +3,7 @@
 # From a sample directory given in argument, compress the molecule set into a unique tar.gz
 # then upload it to s3
 
-from os import path, listdir, rename, getenv, remove, chdir
+from os import path, listdir, rename, getenv, remove, chdir, getcwd
 from sys import stderr, argv
 from shutil import rmtree
 import subprocess
@@ -38,6 +38,7 @@ if not path.exists(mol_dir):
     print("Warning: No molecule to compress", file=stderr)
     exit(0)
 
+path_save = getcwd()
 chdir(sample_dir)
 
 # Compress the molecules directory
@@ -57,7 +58,8 @@ if complete_process.returncode != 0:
     print("Error: s3 upload finished on non 0 return value", file=stderr)
     print(complete_process.stderr, file=stderr)
     exit(complete_process.returncode)
-remove(archive)
+
+chdir(path_save)
 rmtree(sample_dir)
 
 
