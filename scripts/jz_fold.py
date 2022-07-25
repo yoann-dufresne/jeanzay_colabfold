@@ -1,7 +1,8 @@
 #!/bin/python3
 
-from os import listdir, path, mkdir
+from os import listdir, path, mkdir, remove
 from sys import stderr, argv
+import subprocess
 
 fold_dir = argv[1]
 if fold_dir[-1] == '/':
