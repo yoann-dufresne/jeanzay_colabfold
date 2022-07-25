@@ -63,7 +63,7 @@ for file in listdir(split_dir):
     elif file.endswith(".tm"):
         mol_files[file[:-3]]["tm"] = file
     elif file.endswith(".fa"):
-        mol_files[file[:-3]][file[-5:]] = file
+        mol_files[file[:file.find("_")]][file[-5:]] = file
 
 missing_error = False
 scores = []
