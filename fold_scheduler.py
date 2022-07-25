@@ -141,6 +141,20 @@ total = prefold + runnings["compress_mol"] + runnings["compress_sample"] + runni
 
 available = 9999 - dependancies - total
 
+
+
+# recursive start
+if not path.exists("out/scheduler"):
+    mkdir("out/scheduler")
+cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=scheduler --hint=nomultithread --output=out/scheduler/%j.out --error=out/scheduler/%j.err --begin=now+7200 ./jz_run.sh"
+ret = subprocess.run(cmd.split(' '))
+if ret.returncode != 0:
+    print("Error: sbatch command finished on non 0 return value", file=stderr)
+    print(ret.stderr, file=stderr)
+    exit(ret.returncode)
+
+
+# New unzips
 if not path.exists("out"):
     mkdir("out")
 if not path.exists(path.join("out", "unzip")):
@@ -156,12 +170,3 @@ while available > 100 and len(jobs["unzip"]) > 0:
         exit(ret.returncode)
 
 
-# recursive start
-if not path.exists("out/scheduler"):
-    mkdir("out/scheduler")
-cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=scheduler --hint=nomultithread --output=out/scheduler/%j.out --error=out/scheduler/%j.err --begin=now+3600 ./jz_run.sh"
-ret = subprocess.run(cmd.split(' '))
-if ret.returncode != 0:
-    print("Error: sbatch command finished on non 0 return value", file=stderr)
-    print(ret.stderr, file=stderr)
-    exit(ret.returncode)
