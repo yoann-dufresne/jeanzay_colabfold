@@ -49,7 +49,7 @@ if not path.exists(out):
 
 res_dir = path.join(lib_dir, f"res_{sample}")
 
-cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost -A mrb@cpu --time=1:00:00 --job-name=split --hint=nomultithread --output=out/split/%j.out --error=out/split/%j.err --export=res_dir={res_dir} ./scripts/jz_split.sh"
+cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=split --hint=nomultithread --output=out/split/%j.out --error=out/split/%j.err --export=res_dir={res_dir} ./scripts/jz_split.sh"
 complete_process = subprocess.run(cmd.split(' '))
 if complete_process.returncode != 0:
     print("Error: Decompression command finished on non 0 return value", file=stderr)

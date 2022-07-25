@@ -116,5 +116,3 @@ if missing_error:
     print("Error: some files are missing, quitting compression step", file=stderr)
     exit(1)
 
-# Call next script
-# SBATCH TODO
