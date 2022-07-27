@@ -1,4 +1,4 @@
-from os import listdir, path, getenv
+from os import listdir, path, getenv, mkdir
 from sys import stderr
 import subprocess
 import re
@@ -150,7 +150,7 @@ cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time
 ret = subprocess.run(cmd.split(' '))
 if ret.returncode != 0:
     print("Error: sbatch command finished on non 0 return value", file=stderr)
-    print(ret.stderr, file=stderr)
+    print(cmd, file=stderr)
     exit(ret.returncode)
 
 
@@ -168,7 +168,7 @@ while available > 100 and len(jobs["unzip"]) > 0:
     ret = subprocess.run(cmd.split(' '))
     if ret.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
-        print(ret.stderr, file=stderr)
+        print(cmd, file=stderr)
         exit(ret.returncode)
 
 
