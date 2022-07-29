@@ -45,5 +45,6 @@ for file in listdir(fold_dir):
     if to_delete:
         remove(path.join(fold_dir, file))
 
+# Create a lock file
+open(path.join(fold_dir, "folded.lock"), 'a').close()
 
-# No direct successor script. The following script has been launched by split

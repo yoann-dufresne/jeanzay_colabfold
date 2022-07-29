@@ -1,172 +1,196 @@
-from os import listdir, path, getenv
+from os import listdir, mkdir, path, getcwd, chdir
+from shutil import rmtree
 from sys import stderr
+import sys
+from time import time, sleep
 import subprocess
-import re
+
+# Import the root directory to be able to call palmfold
+root_dir = path.dirname(path.dirname(path.abspath(__file__)))
+sys.path.append(root_dir)
+from palmfold.palmfold import main as palmfold_main
 
 
-data_folder = "data"
-scp_folder = "/gpfswork/rech/yph/uep61bl/scp_data"
+start_time = time()
+previous_submit = time()
+min_delay = 2
 
 
-jobs = {
-    "unzip": [],
-    "split": [],
-    "fold": [],
-    "compress_mol": [],
-    "compress_sample": []
-}
+def submit_cmd(cmd):
+    global previous_submit, min_delay
+    # Avoid sbatch spam by delaying submits
+    current_time = time()
+    if current_time - previous_submit <= min_delay:
+        sleep(current_time - previous_submit)
 
-# =========================================================================
-# =========================================================================
-#                           Already decompressed data
-# =========================================================================
-# =========================================================================
+    run_cmd(cmd)
 
-lib_dirs = [x for x in listdir(data_folder) if x.endswith("_split")]
+    previous_submit = time()
 
-for lib_dir in lib_dirs:
-    lib_name = lib_dir[:-6]
-    lib_dir = path.join(data_folder, lib_dir)
 
-    # extract samples
-    samples = [x[4:] for x in listdir(lib_dir) if x.startswith("res_")]
+# Return false on command error
+def run_cmd(cmd):
+    print(cmd)
+    complete_process = subprocess.run(cmd.split(' '))
+    if complete_process.returncode != 0:
+        print("Error: sbatch command finished on non 0 return value", file=stderr)
+        print("error code", complete_process.returncode, file=stderr)
+        return False
+    return True
 
-    for sample in samples:
-        sample_dir = path.join(lib_dir, f"res_{sample}")
 
-        # Fold split directory to decide if we have to split or to fold
-        fold_dir = path.join(sample_dir, "fold_split")
-        if not path.exists(fold_dir):
-            # print("split", sample_dir)
-            jobs["split"].append(sample_dir)
+def recursive_submit():
+    outdir = path.join("out", "postprocess")
+    if not path.exists(outdir):
+        mkdir(outdir)
+
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_fold_scheduler.sh"
+    submit_cmd(cmd)
+
+    # srun --pty --ntasks=1 --cpus-per-task=1 --hint=nomultithread --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=20:00:00 --job-name=postprocess bash
+
+def explore_directories():
+    data_dir = "data"
+
+    for lib_dir in listdir(data_dir):
+        lib_path = path.join(data_dir, lib_dir)
+
+        # verifications
+        if not path.isdir(lib_path):
             continue
 
-        mol_dir = path.join(fold_dir, f"molecules_{sample}")
-        fold_splits = [x for x in listdir(fold_dir) if x.startswith("split_")]
+        print("\t\tLib", lib_dir)
+        for sample_dir in listdir(lib_path):
+            sample_path = path.join(lib_path, sample_dir)
 
-        compress_sample = path.exists(mol_dir)
+            # verifications
+            if not lib_path.startswith("res_"):
+                continue
+            if not path.isdir(sample_path):
+                continue
 
-        for fold_split in fold_splits:
-            fold_split_dir = path.join(fold_dir, fold_split)
-            folded_lock = path.join(fold_split_dir, "folded.lock")
+            print("\tsample", sample_dir)
+            explore_sample(sample_path)
 
-            # Folding not done yet
-            if not path.exists(folded_lock):
-                jobs["fold"].append(fold_split_dir)
-                # print("fold", fold_split_dir)
-            else:
-                a3ms = [x[:-4] for x in listdir(fold_split_dir) if x.endswith(".a3m")]
-                to_compress = frozenset(x[:x.find("_")] for x in listdir(fold_split_dir) if x.endswith(".pdb"))
-                if len(to_compress) > 0:
-                    jobs["compress_mol"].append(fold_split_dir)
-                    # print("compress_mol", fold_split_dir, " ".join(to_compress))
-                    compress_sample = False
-                for a3m in a3ms:
-                    if a3m not in to_compress:
-                        print("folding error", fold_split_dir, a3m, file=stderr)
-        if compress_sample:
-            jobs["compress_sample"].append(sample_dir)
-            # print("compress_sample", sample_dir)
+            print()
+            # Current time check
+            current_time = time()
+            if current_time - start_time > 3600 * 19:
+                print("Out of time. Will wait until the next recursive call")
+                exit(0)
 
 
+def explore_sample(sample_path):
+    fold_path = path.join(sample_path, "fold_split")
+    # If fold dir not present : No post-computing
+    if not path.exists(fold_path):
+        return False
 
-# =========================================================================
-# =========================================================================
-#                           To decompress data
-# =========================================================================
-# =========================================================================
+    splits_to_fold = []
+    # Individual check of each split dir
+    for split_dir in listdir(fold_path):
+        split_path = path.join(fold_path, split_dir)
+        if not split_dir.startswith("split_"):
+            continue
 
-if path.exists(scp_folder):
-    lib_names = [x for x in listdir(scp_folder) if path.isdir(path.join(scp_folder, x))]
-    for lib_name in lib_names:
-        lib_dir = path.join(scp_folder, lib_name)
+        to_fold = explore_split(split_path)
+        if to_fold:
+            splits_to_fold.append(split_dir[6:])
 
-        for f in listdir(lib_dir):
-            if f.endswith(".tar.gz"):
-                jobs["unzip"].append(path.join(lib_dir, f))
-                # print("untar", lib_name, f)
-
-
-# print(jobs)
-
-
-
-# =========================================================================
-# =========================================================================
-#                           Currently running
-# =========================================================================
-# =========================================================================
-
-runnings = {
-    "unzip": 0,
-    "split": 0,
-    "fold": 0,
-    "compress_mol": 0,
-    "compress_sample": 0
-    "other": 0
-}
-
-cmd = f"squeue -u ydufresn"
-ret = subprocess.run(cmd.split(' '), universal_newlines=True, stdout=subprocess.PIPE)
-if ret.returncode != 0:
-    print("Error: squeue command finished on non 0 return value", file=stderr)
-    print(ret.stderr, file=stderr)
-    exit(ret.returncode)
-
-dependancies = 0
-for line in ret.stdout.split('\n')[1:]:
-    if "Dependency" in line:
-        dependancies += 1
-        continue
-    line = re.sub('\\s+', ' ', line.strip()).split(' ')
-    if len(line) < 3:
-        continue
-    name = line[2]
-
-    if name.startswith("sample"):
-        runnings["compress_sample"] += 1
-    elif name.startswith("mol"):
-        runnings["compress_mol"] += 1
-    elif name.startswith("fold"):
-        runnings["fold"] += 1
-    elif name.startswith("split"):
-        runnings["split"] += 1
-    elif name.startswith("unzip"):
-        runnings["unzip"] += 1
-    else:
-        runnings["other"] += 1
-
-prefold = runnings["unzip"] * 70 + runnings["split"] * 70 + runnings["fold"]
-total = prefold + runnings["compress_mol"] + runnings["compress_sample"] + runnings["other"]
-
-available = 9999 - dependancies - total
+    # Start foldings
+    if len(splits_to_fold) > 0:
+        cmd = "sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=fold_dir={fold_path} ./scripts/jz_fold.sh"
+    
+    return False
 
 
+# Return False if some work is still needed. True if everything is over
+def explore_split(split_path):
+    folded_lock = path.join(split_path, "folded.lock")
+    if not path.exists(folded_lock):
+        return False
 
-# recursive start
-if not path.exists("out/scheduler"):
-    mkdir("out/scheduler")
-cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=2:30:00 --job-name=scheduler --hint=nomultithread --output=out/scheduler/%j.out --error=out/scheduler/%j.err --begin=now+7200 ./jz_run.sh"
-ret = subprocess.run(cmd.split(' '))
-if ret.returncode != 0:
-    print("Error: sbatch command finished on non 0 return value", file=stderr)
-    print(ret.stderr, file=stderr)
-    exit(ret.returncode)
+    # Sort the files per molecule
+    files_per_mol = {}
+    for file in listdir(split_path):
+        # Get the file extention and reject unwanted files
+        extention = file[split_path.find('.')+1:]
+        if extention == 'fa':
+            extention = file[-5:]
+        if extention not in ["a3m", "json", "pdb", "tm", "pp.fa", "rc.fa"]:
+            continue
+        
+        # Get the molecule name
+        mol = None
+        if extention == 'a3m' or extention == 'tm':
+            mol = file[:file.rfind('.')]
+        else:
+            mol = file[:file.find('_')]
+
+        if mol not in files_per_mol:
+            files_per_mol[mol] = {}
+        files_per_mol[mol][extention] = file
+
+    everything_ok = True
+    # Score the molecules if needed
+    for mol in files_per_mol:
+        if ('pdb' not in files_per_mol[mol]) or ('json' not in files_per_mol[mol]):
+            print("Warning: missing pdb or json file for" split_path, mol, file=stderr)
+            print("Skipping molecule")
+            everything_ok = False
+            continue
+        if 'tm' not in files_per_mol[mol]:
+            # Missing score => compute scores
+            score_molecules(split_path)
+            # Add score files to molecules
+            for mol in files_per_mol:
+                tm_file = path.join(split_path, f"{mol}.tm")
+                # Exit on error if missing tm files
+                if not path.exists(mol):
+                    print(f"Error: Score not computed for molecule {mol} in {split_path}", file=stderr)
+                    return False
+                files_per_mol[mol]['tm'] = f"{mol}.tm"
+
+    # Compress the uncompressed molecules
+    splitted = split_path.split("/")
+    lib = splitted[-4][:-6]
+    sample = splitted[-3][4:]
+    molecules_path = path.join(*splitted[:-2], f"molecules_{sample}")
+
+    save_path = getcwd()
+    for mol in files_per_mol:
+        chdir(split_path)
+        # Creating molecule directory to compress
+        tar_dir = f"{sample}_{mol}"
+        if not path.exists(tar_dir):
+            mkdir(tar_dir)
+        # Move the files inside the dir
+        for file in files_per_mol[mol]:
+            rename(file, path.join(tar_dir, file))
+        # Compress the dir
+        archive = f"{sample}_{mol}.tar.gz"
+        cmd = f"tar -czf {archive} {tar_dir}"
+        ok = run_cmd(cmd)
+        if not ok:
+            everything_ok = False
+            for file in files_per_mol[mol]:
+                rename(path.join(tar_dir, file), file)
+        # Remove useless files
+        rmtree(tar_dir)
+        chdir(save_path)
+
+        tar_path = path.join(split_path, archive)
+        if path.exists(tar_path):
+            rename(tar_path, path.join(molecules_path, archive))
+
+    return everything_ok
 
 
-# New unzips
-if not path.exists("out"):
-    mkdir("out")
-if not path.exists(path.join("out", "unzip")):
-    mkdir(path.join("out", "unzip"))
+if __name__ == "__main__":
+    recursive_submit()
+    current_time = time()
+    while current_time - start_time < 3600 * 19:
+        explore_directories()
+        sleep(600)
 
-while available > 100 and len(jobs["unzip"]) > 0:
-    available -= 70
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=unzip --hint=nomultithread --output=out/unzip/%j.out --error=out/unzip/%j.err --export=tar_file={jobs['unzip'].pop()} ./scripts/jz_unzip.sh"
-    ret = subprocess.run(cmd.split(' '))
-    if ret.returncode != 0:
-        print("Error: sbatch command finished on non 0 return value", file=stderr)
-        print(ret.stderr, file=stderr)
-        exit(ret.returncode)
-
-
+    print("Time out")

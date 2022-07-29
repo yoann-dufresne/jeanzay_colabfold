@@ -47,6 +47,7 @@ def recursive_submit():
     cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_postfold.sh"
     submit_cmd(cmd)
 
+    # srun --pty --ntasks=1 --cpus-per-task=1 --hint=nomultithread --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=20:00:00 --job-name=postprocess
 
 def explore_directories():
     data_dir = "data"
@@ -83,7 +84,7 @@ def explore_sample(sample_path):
     fold_path = path.join(sample_path, "fold_split")
     # If fold dir not present : No post-computing
     if not path.exists(fold_path):
-        return
+        return False
 
     compressible = True
     # Individual check of each split dir
