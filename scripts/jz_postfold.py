@@ -64,7 +64,7 @@ def explore_directories():
             sample_path = path.join(lib_path, sample_dir)
 
             # verifications
-            if not lib_path.startswith("res_"):
+            if not sample_dir.startswith("res_"):
                 continue
             if not path.isdir(sample_path):
                 continue
@@ -172,7 +172,7 @@ def explore_split(split_path):
     # Score the molecules if needed
     for mol in files_per_mol:
         if ('pdb' not in files_per_mol[mol]) or ('json' not in files_per_mol[mol]):
-            print("Warning: missing pdb or json file for" split_path, mol, file=stderr)
+            print("Warning: missing pdb or json file for", split_path, mol, file=stderr)
             print("Skipping molecule")
             everything_ok = False
             continue
@@ -253,7 +253,7 @@ def score_molecules(split_path):
 
 
 if __name__ == "__main__":
-    recursive_submit()
+    #recursive_submit()
     current_time = time()
     while current_time - start_time < 3600 * 19:
         explore_directories()
