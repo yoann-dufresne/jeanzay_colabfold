@@ -16,27 +16,45 @@ previous_submit = time()
 min_delay = 2
 
 
-def submit_cmd(cmd):
+def submit_cmd(cmd, stdout=False):
     global previous_submit, min_delay
     # Avoid sbatch spam by delaying submits
     current_time = time()
     if current_time - previous_submit <= min_delay:
         sleep(current_time - previous_submit)
 
-    run_cmd(cmd)
+    run_cmd(cmd, stdout, stderr)
+
+    previous_submit = time()
+
+
+def squeue(cmd):
+    global previous_submit, min_delay
+    # Avoid sbatch spam by delaying submits
+    current_time = time()
+    if current_time - previous_submit <= min_delay:
+        sleep(current_time - previous_submit)
+
+    run_cmd("squeue -u uep61bl")
 
     previous_submit = time()
 
 
 # Return false on command error
-def run_cmd(cmd):
+def run_cmd(cmd, stdout=False):
     print(cmd)
     complete_process = subprocess.run(cmd.split(' '))
     if complete_process.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
         print("error code", complete_process.returncode, file=stderr)
-        return False
-    return True
+        if stdout:
+            return False, None
+        else:
+            return False
+    if stdout:
+        return True, complete_process.stdout
+    else:
+        return True
 
 
 def recursive_submit():
@@ -93,13 +111,23 @@ def explore_sample(sample_path):
         if not split_dir.startswith("split_"):
             continue
 
+        submited = path.join(split_path, "submited.lock")
+        if path.exists(submited):
+            # TODO: Verify submission delay (remove lock after a certain time without folding)
+            continue
+
         to_fold = explore_split(split_path)
         if to_fold:
             splits_to_fold.append(split_dir[6:])
+            open(submited, 'a').close()
 
     # Start foldings
     if len(splits_to_fold) > 0:
-        cmd = "sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=fold_dir={fold_path} ./scripts/jz_fold.sh"
+        cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --array= --error=out/fold/%j.err --export=sample_path={sample_path} --array={'.'.join(splits_to_fold)} ./scripts/jz_fold.sh"
+        ok = submit_cmd(cmd)
+        if not ok:
+            for
+        return ok
     
     return False
 
@@ -190,6 +218,8 @@ if __name__ == "__main__":
     recursive_submit()
     current_time = time()
     while current_time - start_time < 3600 * 19:
+        print("TODO: Explore squeue first to know how many submit are possible")
+        exit(1)
         explore_directories()
         sleep(600)
 
