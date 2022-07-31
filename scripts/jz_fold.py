@@ -26,7 +26,7 @@ sample = splitted_path[-1][4:]
 lib = splitted_path[-2][:-6]
 
 # Colabfold
-cmd = f"colabfold_batch --stop-at-score 85 {fold_path} {fold_path}"
+cmd = f"colabfold_batch --stop-at-score 85 {split_path} {split_path}"
 complete_process = subprocess.run(cmd.split(' '))
 if complete_process.returncode != 0:
     print("Error: Colabfold command finished on non 0 return value", file=stderr)
@@ -35,7 +35,7 @@ if complete_process.returncode != 0:
 
 
 # Clean
-for file in listdir(fold_path):
+for file in listdir(split_path):
     to_delete = False
     if file == "cite.bibtex":
         to_delete = True
@@ -51,8 +51,8 @@ for file in listdir(fold_path):
         to_delete = True
 
     if to_delete:
-        remove(path.join(fold_path, file))
+        remove(path.join(split_path, file))
 
 # Create a lock file
-open(path.join(fold_path, "folded.lock"), 'a').close()
+open(path.join(split_path, "folded.lock"), 'a').close()
 
