@@ -35,7 +35,13 @@ def squeue(cmd):
     if current_time - previous_submit <= min_delay:
         sleep(current_time - previous_submit)
 
-    run_cmd("squeue -u uep61bl")
+    ok, stdout = run_cmd("squeue -u uep61bl -h", stdout=True)
+    if not ok:
+        print("squeue error", file=stderr)
+        return None
+
+    # Read all the currently running jobs
+    print(stdout.readlines())
 
     previous_submit = time()
 
@@ -43,7 +49,11 @@ def squeue(cmd):
 # Return false on command error
 def run_cmd(cmd, stdout=False):
     print(cmd)
-    complete_process = subprocess.run(cmd.split(' '))
+    complete_process = None
+    if stdout:
+        complete_process = subprocess.run(cmd.split(' '), stdout=subprocess.PIPE)
+    else:
+        complete_process = subprocess.run(cmd.split(' '))
     if complete_process.returncode != 0:
         print("Error: sbatch command finished on non 0 return value", file=stderr)
         print("error code", complete_process.returncode, file=stderr)
@@ -65,7 +75,6 @@ def recursive_submit():
     cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_fold_scheduler.sh"
     submit_cmd(cmd)
 
-    # srun --pty --ntasks=1 --cpus-per-task=1 --hint=nomultithread --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=20:00:00 --job-name=postprocess bash
 
 def explore_directories():
     data_dir = "data"
@@ -215,12 +224,13 @@ def explore_split(split_path):
 
 
 if __name__ == "__main__":
-    recursive_submit()
+    # recursive_submit()
     current_time = time()
     while current_time - start_time < 3600 * 19:
-        print("TODO: Explore squeue first to know how many submit are possible")
-        exit(1)
+        # print("TODO: Explore squeue first to know how many submit are possible")
+        # exit(1)
         explore_directories()
+        break
         sleep(600)
 
     print("Time out")
