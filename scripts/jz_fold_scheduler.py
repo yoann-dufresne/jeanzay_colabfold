@@ -29,7 +29,7 @@ def submit_cmd(cmd, stdout=False):
     previous_submit = time()
 
 
-def squeue(cmd):
+def squeue():
     global previous_submit, min_delay
     # Avoid sbatch spam by delaying submits
     current_time = time()
