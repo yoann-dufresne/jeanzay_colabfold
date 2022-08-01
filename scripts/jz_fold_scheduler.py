@@ -41,7 +41,10 @@ def squeue(cmd):
         return None
 
     # Read all the currently running jobs
-    print(stdout.readlines())
+    for line in stdout.readlines():
+        line = line.strip()
+        split = line.split()
+        print(split)
 
     previous_submit = time()
 
@@ -171,6 +174,7 @@ def is_to_fold(split_path):
 if __name__ == "__main__":
     # recursive_submit()
     current_time = time()
+    squeue()
     while current_time - start_time < 3600 * 19:
         # print("TODO: Explore squeue first to know how many submit are possible")
         # exit(1)
