@@ -1,4 +1,4 @@
-from os import listdir, mkdir, path, getcwd, chdir
+from os import listdir, mkdir, path, getcwd, chdir, stat
 from shutil import rmtree
 from sys import stderr
 import sys
@@ -78,6 +78,7 @@ def recursive_submit():
 
 def explore_directories():
     data_dir = "data"
+    number_of_submit = 1000
 
     for lib_dir in listdir(data_dir):
         lib_path = path.join(data_dir, lib_dir)
@@ -97,7 +98,8 @@ def explore_directories():
                 continue
 
             print("\tsample", sample_dir)
-            explore_sample(sample_path)
+            status, submitted = explore_sample(sample_path, number_of_submit)
+            number_of_submit -= submitted
 
             print()
             # Current time check
@@ -106,24 +108,36 @@ def explore_directories():
                 print("Out of time. Will wait until the next recursive call")
                 exit(0)
 
+            if number_of_submit <= 0:
+                return
 
-def explore_sample(sample_path):
+
+def explore_sample(sample_path, max_submit=0):
+    if max_submit <= 0:
+        return False, 0
+
     fold_path = path.join(sample_path, "fold_split")
     # If fold dir not present : No post-computing
     if not path.exists(fold_path):
-        return False
+        return False, 0
 
     splits_to_fold = []
+    split_dirs = listdir(fold_path)
+    
     # Individual check of each split dir
-    for split_dir in listdir(fold_path):
+    for split_dir in split_dirs:
         split_path = path.join(fold_path, split_dir)
         if not split_dir.startswith("split_"):
             continue
 
         submited = path.join(split_path, "submited.lock")
         if path.exists(submited):
-            # TODO: Verify submission delay (remove lock after a certain time without folding)
-            continue
+            creation_time = path.getctime(submited)
+            # If submitted less than 24h ago, continue to wait
+            if (creation_time - time() < 24 * 3600)
+                continue
+            else:
+                remove(submited)
 
         to_fold = explore_split(split_path)
         if to_fold:
@@ -134,11 +148,9 @@ def explore_sample(sample_path):
     if len(splits_to_fold) > 0:
         cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --array= --error=out/fold/%j.err --export=sample_path={sample_path} --array={'.'.join(splits_to_fold)} ./scripts/jz_fold.sh"
         ok = submit_cmd(cmd)
-        if not ok:
-            for
-        return ok
+        return ok, len(splits_to_fold)
     
-    return False
+    return False, 0
 
 
 # Return False if some work is still needed. True if everything is over
