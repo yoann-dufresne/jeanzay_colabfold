@@ -92,7 +92,7 @@ def explore_directories():
             sample_path = path.join(lib_path, sample_dir)
 
             # verifications
-            if not lib_path.startswith("res_"):
+            if not sample_dir.startswith("res_"):
                 continue
             if not path.isdir(sample_path):
                 continue
@@ -134,7 +134,7 @@ def explore_sample(sample_path, max_submit=0):
         if path.exists(submited):
             creation_time = path.getctime(submited)
             # If submitted less than 24h ago, continue to wait
-            if (creation_time - time() < 24 * 3600)
+            if (creation_time - time() < 24 * 3600):
                 continue
             else:
                 remove(submited)
@@ -184,7 +184,7 @@ def explore_split(split_path):
     # Score the molecules if needed
     for mol in files_per_mol:
         if ('pdb' not in files_per_mol[mol]) or ('json' not in files_per_mol[mol]):
-            print("Warning: missing pdb or json file for" split_path, mol, file=stderr)
+            print("Warning: missing pdb or json file for", split_path, mol, file=stderr)
             print("Skipping molecule")
             everything_ok = False
             continue
