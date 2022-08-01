@@ -1,6 +1,7 @@
 from os import listdir, mkdir, path, getcwd, chdir, stat
 from shutil import rmtree
 from sys import stderr
+import re
 import sys
 from time import time, sleep
 import subprocess
@@ -23,7 +24,7 @@ def submit_cmd(cmd, stdout=False):
     if current_time - previous_submit <= min_delay:
         sleep(current_time - previous_submit)
 
-    run_cmd(cmd, stdout, stderr)
+    run_cmd(cmd, stdout)
 
     previous_submit = time()
 
@@ -41,12 +42,15 @@ def squeue(cmd):
         return None
 
     # Read all the currently running jobs
-    for line in stdout.readlines():
-        line = line.strip()
-        split = line.split()
-        print(split)
+    nb_jobs = 0
+    for line in stdout.split('\n'):
+        # line = re.sub(' +', ' ', line.strip())
+        # split = line.split(' ')
+        nb_jobs += 1
 
     previous_submit = time()
+
+    return nb_jobs
 
 
 # Return false on command error
@@ -54,7 +58,7 @@ def run_cmd(cmd, stdout=False):
     print(cmd)
     complete_process = None
     if stdout:
-        complete_process = subprocess.run(cmd.split(' '), stdout=subprocess.PIPE)
+        complete_process = subprocess.run(cmd.split(' '), capture_output=stdout, text=True)
     else:
         complete_process = subprocess.run(cmd.split(' '))
     if complete_process.returncode != 0:
@@ -81,7 +85,7 @@ def recursive_submit():
 
 def explore_directories():
     data_dir = "data"
-    number_of_submit = 1000
+    number_of_submit = 5000 - squeue()
 
     for lib_dir in listdir(data_dir):
         lib_path = path.join(data_dir, lib_dir)
@@ -138,7 +142,7 @@ def explore_sample(sample_path, max_submit=0):
         if path.exists(submited):
             creation_time = path.getctime(submited)
             # If submitted less than 24h ago, continue to wait
-            if (creation_time - time() < 24 * 3600):
+            if (creation_time - time() < 10):#24 * 3600):
                 continue
             else:
                 remove(submited)
@@ -175,10 +179,7 @@ if __name__ == "__main__":
     # recursive_submit()
     current_time = time()
     while current_time - start_time < 3600 * 19:
-        # print("TODO: Explore squeue first to know how many submit are possible")
-        # exit(1)
         explore_directories()
-        squeue()
         break
         sleep(600)
 
