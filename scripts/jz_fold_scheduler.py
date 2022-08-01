@@ -119,6 +119,7 @@ def explore_sample(sample_path, max_submit=0):
     fold_path = path.join(sample_path, "fold_split")
     # If fold dir not present : No post-computing
     if not path.exists(fold_path):
+        print("No fold_split directory")
         return False, 0
 
     splits_to_fold = []
@@ -139,7 +140,7 @@ def explore_sample(sample_path, max_submit=0):
             else:
                 remove(submited)
 
-        to_fold = explore_split(split_path)
+        to_fold = is_to_fold(split_path)
         if to_fold:
             splits_to_fold.append(split_dir[6:])
             open(submited, 'a').close()
@@ -154,85 +155,17 @@ def explore_sample(sample_path, max_submit=0):
 
 
 # Return False if some work is still needed. True if everything is over
-def explore_split(split_path):
+def is_to_fold(split_path):
     folded_lock = path.join(split_path, "folded.lock")
-    if not path.exists(folded_lock):
+    if path.exists(folded_lock):
         return False
 
     # Sort the files per molecule
-    files_per_mol = {}
     for file in listdir(split_path):
-        # Get the file extention and reject unwanted files
-        extention = file[split_path.find('.')+1:]
-        if extention == 'fa':
-            extention = file[-5:]
-        if extention not in ["a3m", "json", "pdb", "tm", "pp.fa", "rc.fa"]:
-            continue
-        
-        # Get the molecule name
-        mol = None
-        if extention == 'a3m' or extention == 'tm':
-            mol = file[:file.rfind('.')]
-        else:
-            mol = file[:file.find('_')]
+        if file.endswith("a3m"):
+            return True
 
-        if mol not in files_per_mol:
-            files_per_mol[mol] = {}
-        files_per_mol[mol][extention] = file
-
-    everything_ok = True
-    # Score the molecules if needed
-    for mol in files_per_mol:
-        if ('pdb' not in files_per_mol[mol]) or ('json' not in files_per_mol[mol]):
-            print("Warning: missing pdb or json file for", split_path, mol, file=stderr)
-            print("Skipping molecule")
-            everything_ok = False
-            continue
-        if 'tm' not in files_per_mol[mol]:
-            # Missing score => compute scores
-            score_molecules(split_path)
-            # Add score files to molecules
-            for mol in files_per_mol:
-                tm_file = path.join(split_path, f"{mol}.tm")
-                # Exit on error if missing tm files
-                if not path.exists(mol):
-                    print(f"Error: Score not computed for molecule {mol} in {split_path}", file=stderr)
-                    return False
-                files_per_mol[mol]['tm'] = f"{mol}.tm"
-
-    # Compress the uncompressed molecules
-    splitted = split_path.split("/")
-    lib = splitted[-4][:-6]
-    sample = splitted[-3][4:]
-    molecules_path = path.join(*splitted[:-2], f"molecules_{sample}")
-
-    save_path = getcwd()
-    for mol in files_per_mol:
-        chdir(split_path)
-        # Creating molecule directory to compress
-        tar_dir = f"{sample}_{mol}"
-        if not path.exists(tar_dir):
-            mkdir(tar_dir)
-        # Move the files inside the dir
-        for file in files_per_mol[mol]:
-            rename(file, path.join(tar_dir, file))
-        # Compress the dir
-        archive = f"{sample}_{mol}.tar.gz"
-        cmd = f"tar -czf {archive} {tar_dir}"
-        ok = run_cmd(cmd)
-        if not ok:
-            everything_ok = False
-            for file in files_per_mol[mol]:
-                rename(path.join(tar_dir, file), file)
-        # Remove useless files
-        rmtree(tar_dir)
-        chdir(save_path)
-
-        tar_path = path.join(split_path, archive)
-        if path.exists(tar_path):
-            rename(tar_path, path.join(molecules_path, archive))
-
-    return everything_ok
+    return False
 
 
 if __name__ == "__main__":
