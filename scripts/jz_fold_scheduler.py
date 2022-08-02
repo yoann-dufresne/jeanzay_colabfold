@@ -44,9 +44,12 @@ def squeue():
     # Read all the currently running jobs
     nb_jobs = 0
     for line in stdout.split('\n'):
-        # line = re.sub(' +', ' ', line.strip())
-        # split = line.split(' ')
-        nb_jobs += 1
+        line = re.sub(' +', ' ', line.strip())
+        split = line.split(' ')
+        if "_[" in split[0]:
+            nb_jobs += 20
+        else:
+            nb_jobs += 1
 
     previous_submit = time()
 
@@ -154,9 +157,11 @@ def explore_sample(sample_path, max_submit=0):
 
     # Start foldings
     if len(splits_to_fold) > 0:
-        cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --array= --error=out/fold/%j.err --export=sample_path={sample_path} --array={','.join(splits_to_fold)} ./scripts/jz_fold.sh"
+        cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=sample_path={sample_path} --array={','.join(splits_to_fold)} ./scripts/jz_fold.sh"
         ok = submit_cmd(cmd)
         return ok, len(splits_to_fold)
+    else:
+        print("Nothing to fold")
     
     return False, 0
 
