@@ -84,6 +84,7 @@ def explore_sample(sample_path):
     fold_path = path.join(sample_path, "fold_split")
     # If fold dir not present : No post-computing
     if not path.exists(fold_path):
+        print("Not splitted")
         return False
 
     compressible = True
@@ -100,6 +101,7 @@ def explore_sample(sample_path):
     if compressible:
         return compress_and_upload_sample(sample_path)
     
+    print("Not all molecules folded")
     return False
 
 
@@ -129,7 +131,6 @@ def compress_and_upload_sample(sample_path):
     if ok:
         cmd = f"aws s3 cp {archive} s3://serratus-fold/CFDL/{archive}"
         print("sending", sample_path)
-        exit(0)
         ok = run_cmd(cmd)
     
     chdir(path_save)
@@ -257,6 +258,7 @@ if __name__ == "__main__":
     current_time = time()
     while current_time - start_time < 3600 * 19:
         explore_directories()
+        break
         sleep(600)
 
     print("Time out")
