@@ -113,7 +113,7 @@ def compress_and_upload_sample(sample_path):
 
     # Go to the compression dir
     path_save = getcwd()
-    chdir(sample_dir)
+    chdir(sample_path)
 
     # Names
     archive = f"{lib}_{sample}.tar.gz"
