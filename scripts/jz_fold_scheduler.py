@@ -145,7 +145,7 @@ def explore_sample(sample_path, max_submit=0):
         if path.exists(submited):
             creation_time = path.getctime(submited)
             # If submitted less than 24h ago, continue to wait
-            if (creation_time - time() < 10):#24 * 3600):
+            if (time() - creation_time < 24 * 3600):
                 continue
             else:
                 remove(submited)
