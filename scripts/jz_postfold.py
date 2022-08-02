@@ -1,4 +1,4 @@
-from os import listdir, mkdir, path, getcwd, chdir
+from os import listdir, mkdir, path, getcwd, chdir, remove
 from shutil import rmtree
 from sys import stderr
 import sys
