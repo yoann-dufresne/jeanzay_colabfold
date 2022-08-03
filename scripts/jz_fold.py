@@ -88,7 +88,7 @@ for file in listdir(split_path):
 
     if files_per_mol[mol][ext] is None:
         files_per_mol[mol][ext] = file
-    elif path.getctime(file_path) - path.getctime(path.join(split_path, files_per_mol[mol][ext])) > 0:
+    elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][ext])):
         remove(path.join(split_path, files_per_mol[mol][ext]))
         files_per_mol[mol][ext] = file
 
