@@ -86,11 +86,11 @@ for file in listdir(split_path):
 
     extention = file[file.rfind(".")+1:]
 
-    if files_per_mol[mol][ext] is None:
-        files_per_mol[mol][ext] = file
-    elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][ext])):
-        remove(path.join(split_path, files_per_mol[mol][ext]))
-        files_per_mol[mol][ext] = file
+    if files_per_mol[mol][extention] is None:
+        files_per_mol[mol][extention] = file
+    elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][extention])):
+        remove(path.join(split_path, files_per_mol[mol][extention]))
+        files_per_mol[mol][extention] = file
 
 
 # Score the alignments
