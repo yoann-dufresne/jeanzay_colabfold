@@ -44,7 +44,7 @@ def recursive_submit():
     if not path.exists(outdir):
         mkdir(outdir)
 
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_postfold.sh"
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_postfold.sh"
     submit_cmd(cmd)
 
     # srun --pty --ntasks=1 --cpus-per-task=1 --hint=nomultithread --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=20:00:00 --job-name=postprocess
@@ -152,8 +152,14 @@ def compress_and_upload_sample(sample_path):
 # Return False if some work is still needed. True if everything is over
 def explore_split(split_path):
     content = listdir(split_path)
-    if len(content) == 2 and "log.txt" in content and "ready.lock" in content:
+    contains_mol = False
+    for file in content:
+        if file.endswith("a3m"):
+            contains_mol = True
+            break
+    if not contains_mol:
         return True
+        
     folded_lock = path.join(split_path, "folded.lock")
     if not path.exists(folded_lock):
         return False
