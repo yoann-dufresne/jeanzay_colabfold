@@ -238,10 +238,10 @@ def explore_split(split_path):
 
 
 def score_molecules(split_path):
-    splitted = split_path.split("/")
-    lib = splitted[-4][:-6]
-    sample = splitted[-3][4:]
-    mol_path = path.join(*splitted[:-2], f"molecules_{sample}")
+    # splitted = split_path.split("/")
+    lib = "TST"
+    sample = "007"
+    mol_path = "test/molecules"
 
     # Create molecule directory and global tm file
     if not path.exists(mol_path):
@@ -249,10 +249,10 @@ def score_molecules(split_path):
 
     # Score and compress all the molecules
     palmfold_main(split_path, path.join(root_dir, "palmfold", "pol"), 0)
-    # # Rename realigned files
-    # for file in listdir(split_path):
-    #     if file.endswith("_realign.pdb"):
-    #         rename(path.join(split_path, file), path.join(split_path, file[:-12]))
+    # Rename realigned files
+    for file in listdir(split_path):
+        if file.endswith("_realign.pdb"):
+            rename(path.join(split_path, file), path.join(split_path, file[:-12]))
 
     # # Update the global tm file
     # global_tm = path.join(mol_path, f"{lib}_{sample}.tm")
