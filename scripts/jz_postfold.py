@@ -165,7 +165,7 @@ def explore_split(split_path):
 
     # Sort the files per molecule
     files_per_mol = {}
-    for file in listdir(content):
+    for file in content:
         # Get the file extention and reject unwanted files
         extention = file[split_path.find('.')+1:]
         if extention == 'fa':
