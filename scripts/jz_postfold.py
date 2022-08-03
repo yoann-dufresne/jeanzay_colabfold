@@ -167,7 +167,7 @@ def explore_split(split_path):
     files_per_mol = {}
     for file in content:
         # Get the file extention and reject unwanted files
-        extention = file[split_path.find('.')+1:]
+        extention = file[file.find('.')+1:]
         if extention == 'fa':
             extention = file[-5:]
         if extention not in ["a3m", "json", "pdb", "tm", "pp.fa", "rc.fa"]:
@@ -186,6 +186,7 @@ def explore_split(split_path):
 
     print(files_per_mol)
     print()
+    exit(0)
 
     everything_ok = True
     # Score the molecules if needed
