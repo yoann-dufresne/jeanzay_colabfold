@@ -6,7 +6,7 @@ for sample_dir in listdir(lib_path):
     sample_path = path.join(lib_path, sample_dir)
     fold_path = path.join(sample_path, "fold_split")
 
-    if not path.exist(fold_path):
+    if not path.exists(fold_path):
         continue
 
     for split_dir in listdir(fold_path):
