@@ -164,7 +164,7 @@ def explore_split(split_path):
     files_per_mol = {}
     for file in content:
         # Get the file extention and reject unwanted files
-        extention = file[file.find('.')+1:]
+        extention = file[file.rfind('.')+1:]
         if extention == 'fa':
             extention = file[-5:]
         if extention not in ["a3m", "json", "pdb", "tm", "pp.fa", "rc.fa"]:
