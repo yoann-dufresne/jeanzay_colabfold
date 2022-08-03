@@ -125,8 +125,6 @@ def compress_and_upload_sample(sample_path):
     archive = f"{lib}_{sample}.tar.gz"
 
     # Compress
-    print("should compress but debug stop")
-    exit(0)
     cmd = f"tar -czf {archive} molecules_{sample}"
     ok = run_cmd(cmd)
     if ok:
@@ -137,7 +135,7 @@ def compress_and_upload_sample(sample_path):
 
     # Upload
     if ok:
-        cmd = f"aws s3 cp {archive} s3://serratus-fold/CFDL/{archive}"
+        cmd = f"/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {archive} s3://serratus-fold/CFDL/{archive}"
         print("sending", sample_path)
         ok = run_cmd(cmd)
     
@@ -145,7 +143,8 @@ def compress_and_upload_sample(sample_path):
     
     # Clean
     if ok:
-        rmtree(sample_path)
+        print("sent. Please remove manually", sample_path)
+        # rmtree(sample_path)
 
     exit(0)
     return ok
