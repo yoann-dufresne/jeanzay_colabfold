@@ -69,7 +69,7 @@ def explore_directories():
             if not path.isdir(sample_path):
                 continue
 
-            sample_dir = "res_10129"
+            sample_dir = "res_10433"
             sample_path = path.join(lib_path, sample_dir)
 
             print("\tsample", sample_dir)
@@ -143,8 +143,7 @@ def compress_and_upload_sample(sample_path):
     
     # Clean
     if ok:
-        print("sent. Please remove manually", sample_path)
-        # rmtree(sample_path)
+        rmtree(sample_path)
 
     exit(0)
     return ok
