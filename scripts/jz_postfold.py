@@ -167,6 +167,8 @@ def explore_split(split_path):
             extention = file[-5:]
         if extention not in ["a3m", "json", "pdb", "tm", "pp.fa", "rc.fa"]:
             continue
+
+        file_path = path.join(split_path, file)
         
         # Get the molecule name
         mol = None
@@ -177,7 +179,11 @@ def explore_split(split_path):
 
         if mol not in files_per_mol:
             files_per_mol[mol] = {}
-        files_per_mol[mol][extention] = file
+        if extention not in files_per_mol[mol]:
+            files_per_mol[mol][extention] = file
+        elif path.getctime(file_path) - path.getctime(path.join(split_path, files_per_mol[mol][ext])) > 0:
+            remove(path.join(split_path, files_per_mol[mol][ext]))
+            files_per_mol[mol][extention] = file
 
     everything_ok = True
     # Score the molecules if needed
