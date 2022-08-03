@@ -152,6 +152,7 @@ def compress_and_upload_sample(sample_path):
 
 # Return False if some work is still needed. True if everything is over
 def explore_split(split_path):
+    print()
     content = listdir(split_path)
     print(content)
     if len(content) == 2 and "log.txt" in content and "ready.lock" in content:
@@ -164,7 +165,7 @@ def explore_split(split_path):
 
     # Sort the files per molecule
     files_per_mol = {}
-    for file in listdir(split_path):
+    for file in listdir(content):
         # Get the file extention and reject unwanted files
         extention = file[split_path.find('.')+1:]
         if extention == 'fa':
@@ -182,6 +183,9 @@ def explore_split(split_path):
         if mol not in files_per_mol:
             files_per_mol[mol] = {}
         files_per_mol[mol][extention] = file
+
+    print(files_per_mol)
+    print()
 
     everything_ok = True
     # Score the molecules if needed
