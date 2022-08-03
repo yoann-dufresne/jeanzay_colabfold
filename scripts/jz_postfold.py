@@ -184,6 +184,9 @@ def explore_split(split_path):
         elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][extention])):
             remove(path.join(split_path, files_per_mol[mol][extention]))
             files_per_mol[mol][extention] = file
+        else:
+            remove(file_path)
+
 
     everything_ok = True
     # Score the molecules if needed
