@@ -196,7 +196,7 @@ def explore_split(split_path):
             for mol in files_per_mol:
                 tm_file = path.join(split_path, f"{mol}.tm")
                 # Exit on error if missing tm files
-                if not path.exists(mol):
+                if not path.exists(tm_file):
                     print(f"Error: Score not computed for molecule {mol} in {split_path}", file=stderr)
                     return False
                 files_per_mol[mol]['tm'] = f"{mol}.tm"
