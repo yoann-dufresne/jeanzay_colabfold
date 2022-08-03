@@ -181,8 +181,8 @@ def explore_split(split_path):
             files_per_mol[mol] = {}
         if extention not in files_per_mol[mol]:
             files_per_mol[mol][extention] = file
-        elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][ext])):
-            remove(path.join(split_path, files_per_mol[mol][ext]))
+        elif path.getctime(file_path) > path.getctime(path.join(split_path, files_per_mol[mol][extention])):
+            remove(path.join(split_path, files_per_mol[mol][extention]))
             files_per_mol[mol][extention] = file
 
     everything_ok = True
