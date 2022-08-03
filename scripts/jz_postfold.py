@@ -1,5 +1,5 @@
-from os import listdir, mkdir, path, getcwd, chdir, remove
-from shutil import rmtree, rename
+from os import listdir, mkdir, path, getcwd, chdir, remove, rename
+from shutil import rmtree
 from sys import stderr
 import sys
 from time import time, sleep
@@ -259,7 +259,7 @@ def score_molecules(split_path):
     for file in [x for x in listdir(split_path) if x.endswith(".tm")]:
         with open(path.join(split_path, file)) as tm:
             tm.readline()
-            for line in readlines():
+            for line in tm.readlines():
                 lines.append(line.strip())
     with open(global_tm, "a") as gtm:
         print("\n".join(lines), file=gtm)
