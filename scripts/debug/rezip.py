@@ -16,23 +16,16 @@ def run_cmd(cmd):
 
 sample_path = path.join("data", "CFDL_split", "res_10129")
 mols_path = path.join(sample_path, "molecules_10129")
-fold_path = path.join(sample_path, "fold_split")
 
 files_per_mol = {}
 
 # Register all missing files per molecule
-for split_dir in listdir(fold_path):
-    if not split_dir.startswith("split_"):
-        continue
-
-    split_path = path.join(fold_path, split_dir)
-
-    for file in listdir(split_path):
-        if file.endswith(".fa"):
-            mol = file[:file.find("_")]
-            if mol not in files_per_mol:
-                files_per_mol[mol] = []
-            files_per_mol[mol].append(path.join("fold_split", split_dir, file))
+for file in listdir(mols_path):
+    if file.endswith(".fa"):
+        mol = file[:file.find("_")]
+        if mol not in files_per_mol:
+            files_per_mol[mol] = []
+        files_per_mol[mol].append(file)
 
 # Move to the mol directory to decompress/recompress
 chdir(mols_path)
@@ -40,6 +33,7 @@ for mol in files_per_mol:
     print(files_per_mol[mol])
     continue
     # decompress the molecule
+    mol_dir = f"10129_{mol}"
     archive = f"10129_{mol}.tar.gz"
     ok = run_cmd(f"tar -xzf {archive}")
     if ok:
@@ -50,10 +44,9 @@ for mol in files_per_mol:
 
     # add the files
     for file in files_per_mol[mol]:
-        rename(path.join("..", file), file[file.rfind('/')+1:])
+        rename(file, path.join(mol_dir, file[file.rfind('/')+1:]))
 
     # recompress the molecule
-    mol_dir = f"10129_{mol}"
     ok = run_cmd(f"tar -czf {archive} {mol_dir}")
     if ok:
         rmtree(mol_dir)
