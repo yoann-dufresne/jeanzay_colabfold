@@ -1,5 +1,5 @@
 from os import listdir, mkdir, path, getcwd, chdir, remove
-from shutil import rmtree
+from shutil import rmtree, rename
 from sys import stderr
 import sys
 from time import time, sleep
