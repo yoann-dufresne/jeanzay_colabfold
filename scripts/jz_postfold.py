@@ -124,6 +124,8 @@ def compress_and_upload_sample(sample_path):
     archive = f"{lib}_{sample}.tar.gz"
 
     # Compress
+    print("should compress but debug stop")
+    exit(0)
     cmd = f"tar -czf {archive} molecules_{sample}"
     ok = run_cmd(cmd)
     if ok:
@@ -150,11 +152,14 @@ def compress_and_upload_sample(sample_path):
 
 # Return False if some work is still needed. True if everything is over
 def explore_split(split_path):
-    content = list(listdir(split_path))
+    content = listdir(split_path)
+    print(content)
     if len(content) == 2 and "log.txt" in content and "ready.lock" in content:
+        print("2 files oké")
         return True
     folded_lock = path.join(split_path, "folded.lock")
     if not path.exists(folded_lock):
+        print("No folded.lock")
         return False
 
     # Sort the files per molecule
@@ -181,6 +186,7 @@ def explore_split(split_path):
     everything_ok = True
     # Score the molecules if needed
     for mol in files_per_mol:
+        print(files_per_mol[mol])
         if ('pdb' not in files_per_mol[mol]) or ('json' not in files_per_mol[mol]):
             print("Warning: missing pdb or json file for", split_path, mol, file=stderr)
             print("Skipping molecule")
