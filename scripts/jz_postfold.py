@@ -97,6 +97,7 @@ def explore_sample(sample_path):
         if not split_dir.startswith("split_"):
             continue
 
+        print(split_path)
         is_over = explore_split(split_path)
         print(split_path, is_over)
         if not is_over:
@@ -256,7 +257,7 @@ def score_molecules(split_path):
 
     lines = []
     for file in [x for x in listdir(split_path) if x.endswith(".tm")]:
-        with open(file) as tm:
+        with open(path.join(split_path, file)) as tm:
             tm.readline()
             for line in readlines():
                 lines.append(line.strip())
