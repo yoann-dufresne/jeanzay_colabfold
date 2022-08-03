@@ -191,6 +191,7 @@ def explore_split(split_path):
             continue
         if 'tm' not in files_per_mol[mol]:
             # Missing score => compute scores
+            print("score")
             score_molecules(split_path)
             # Add score files to molecules
             for mol in files_per_mol:
@@ -215,7 +216,8 @@ def explore_split(split_path):
         if not path.exists(tar_dir):
             mkdir(tar_dir)
         # Move the files inside the dir
-        for file in files_per_mol[mol]:
+        for ext in files_per_mol[mol]:
+            file = files_per_mol[mol][ext]
             rename(file, path.join(tar_dir, file))
         # Compress the dir
         archive = f"{sample}_{mol}.tar.gz"
@@ -223,7 +225,8 @@ def explore_split(split_path):
         ok = run_cmd(cmd)
         if not ok:
             everything_ok = False
-            for file in files_per_mol[mol]:
+            for ext in files_per_mol[mol]:
+                file = files_per_mol[mol][ext]
                 rename(path.join(tar_dir, file), file)
         # Remove useless files
         rmtree(tar_dir)
