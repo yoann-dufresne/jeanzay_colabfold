@@ -69,6 +69,9 @@ def explore_directories():
             if not path.isdir(sample_path):
                 continue
 
+            sample_dir = "res_10129"
+            sample_path = path.join(lib_path, sample_dir)
+
             print("\tsample", sample_dir)
             explore_sample(sample_path)
 
@@ -95,13 +98,15 @@ def explore_sample(sample_path):
             continue
 
         is_over = explore_split(split_path)
+        print(split_path, is_over)
         if not is_over:
             compressible = False
-
+    print("compressible", compressible)
     if compressible:
         return compress_and_upload_sample(sample_path)
-    
+
     print("Not all molecules folded")
+    exit(0)
     return False
 
 
@@ -138,12 +143,16 @@ def compress_and_upload_sample(sample_path):
     # Clean
     if ok:
         rmtree(sample_path)
-    
+
+    exit(0)
     return ok
 
 
 # Return False if some work is still needed. True if everything is over
 def explore_split(split_path):
+    content = list(listdir(split_path))
+    if len(content) == 2 and "log.txt" in content and "ready.lock" in content:
+        return True
     folded_lock = path.join(split_path, "folded.lock")
     if not path.exists(folded_lock):
         return False
