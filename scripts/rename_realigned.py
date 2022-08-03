@@ -12,7 +12,7 @@ for sample_dir in listdir(lib_path):
     for split_dir in listdir(fold_path):
         split_path = path.join(fold_path, split_dir)
 
-        for file in split_path:
+        for file in listdir(split_path):
             if "realign.pdb" in file:
                 rename(
                     path.join(split_path, file),
