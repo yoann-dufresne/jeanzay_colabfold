@@ -30,8 +30,6 @@ for file in listdir(mols_path):
 # Move to the mol directory to decompress/recompress
 chdir(mols_path)
 for mol in files_per_mol:
-    print(files_per_mol[mol])
-    continue
     # decompress the molecule
     mol_dir = f"10129_{mol}"
     archive = f"10129_{mol}.tar.gz"
