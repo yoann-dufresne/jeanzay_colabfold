@@ -135,7 +135,7 @@ def compress_and_upload_sample(sample_path):
         ok = run_cmd(cmd)
     
     chdir(path_save)
-    
+
     # Clean
     if ok:
         rmtree(sample_path)
@@ -257,6 +257,7 @@ def score_molecules(split_path):
         mkdir(mol_path)
 
     # Score and compress all the molecules
+    # print(path.join(root_dir, "palmfold", "pol"))
     palmfold_main(split_path, path.join(root_dir, "palmfold", "pol"), 0)
     # Rename realigned files
     for file in listdir(split_path):
