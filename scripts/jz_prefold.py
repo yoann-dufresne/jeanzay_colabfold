@@ -1,58 +1,117 @@
 from os import path, listdir, rename, mkdir, remove, chdir, getcwd
 from shutil import copy
 import subprocess
+from time import time
 from sys import stderr, argv
 
-# Get all the tar.gz from multiple samples from the scp_dir and prepare them for folding
-# The script stop after 19h if not finished and resubmit itself
+
+# Return false on command error
+def run_cmd(cmd):
+    print(cmd)
+    complete_process = subprocess.run(cmd.split(' '))
+    if complete_process.returncode != 0:
+        print("Error: sbatch command finished on non 0 return value", file=stderr)
+        print("error code", complete_process.returncode, file=stderr)
+        return False
+    return True
 
 
-# $SCP_DIR/libname/sample.tar.gz
-tar_file = argv[1]
-splitted_path = tar_file.split('/')
+def split_existing():
+    data_path = "data"
+    nb_splits = 0
 
-sample = splitted_path[-1]
-sample = sample[:sample.find('.')]
-lib = splitted_path[-2]
+    for lib_dir in listdir(data_path):
+        lib_path = path.join(data_path, lib_dir)
+        if (not lib_dir.endswith("_split")) or (not path.isdir(lib_path)):
+            continue
 
-# Create the lib dir if not already created
-data_dir = "data"
-lib_dir = path.join(data_dir, f"{lib}_split")
-if not path.exists(lib_dir):
-    mkdir(lib_dir)
+        lib = libdir[:-6]
 
-# Move the file
-copy(tar_file, path.join(lib_dir, splitted_path[-1]))
-remove(tar_file)
-tar_file = splitted_path[-1]
+        for sample_dir in listdir(lib_path):
+            sample_path = path.join(lib_path, sample_dir)
+            if (not sample_dir.startswith("res_")) or (not path.isdir(sample_path)):
+                continue
 
-current_path = getcwd()
-chdir(lib_dir)
+            sample = sample_dir[4:]
 
-# unzip
-complete_process = subprocess.run(["tar", "-xzf", tar_file])
-if complete_process.returncode != 0:
-    print("Error: Decompression command finished on non 0 return value", file=stderr)
-    print(complete_process.stderr, file=stderr)
-    exit(complete_process.returncode)
-remove(tar_file)
+            fold_path = path.join(sample_path, "fold_split")
+            if not path.exists(fold_path):
+                split_sample(sample_path)
+            nb_splits += len(listdir(fold_path))
 
-chdir(current_path)
 
-# SBATCH fold split
-out = path.join("out")
-if not path.exists(out):
-    mkdir(out)
+def split_sample(sample_path):
+    max_mol_per_split = 20
 
-out = path.join(out, "split")
-if not path.exists(out):
-    mkdir(out)
+    fold_path = path.join(sample_path, "fold_split")
+    mkdir(fold_path)
+    split_idx = -1
+    split_path = None
+    current_split_mols = max_mol_per_split
 
-res_dir = path.join(lib_dir, f"res_{sample}")
+    for file in listdir(sample_path):
+        if not file.endswith(".a3m"):
+            continue
 
-cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --time=1:00:00 --job-name=split --hint=nomultithread --output=out/split/%j.out --error=out/split/%j.err --export=res_dir={res_dir} ./scripts/jz_split.sh"
-complete_process = subprocess.run(cmd.split(' '))
-if complete_process.returncode != 0:
-    print("Error: Decompression command finished on non 0 return value", file=stderr)
-    print(complete_process.stderr, file=stderr)
-    exit(complete_process.returncode)
+        # Verify split dir is complete to create new splits
+        if current_split_mols == max_mol_per_split:
+            split_idx += 1
+            split_path = path.join(fold_path, f"split_{split_idx}")
+            mkdir(split_path)
+            current_split_mols = 0
+
+        # Move to current split dir
+        rename(path.join(sample_path, file), path.join(split_path, file))
+
+
+def decompress_samples(max_splits=0):
+    scp_path = "/gpfswork/rech/yph/uep61bl/scp_data"
+
+    saved_path = getcwd()
+
+    for lib in listdir(scp_path):
+        if not path.isdir(lib):
+            continue
+        scp_lib_path = path.join(scp_path, lib)
+        lib_path = path.join("data", f"{lib}_split")
+        chdir(lib_path)
+
+        for file in listdir(scp_lib_path):
+            if not file.endswith(".tar.gz"):
+                continue
+
+            if max_decompress == 0:
+                chdir(saved_path)
+                print("Max splitted folders reached. Quitting...")
+                return
+            
+            sample = file[:-7]
+
+            copy(path.join(scp_lib_path, file), path.join(file))
+            # decompress
+            cmd = f"tar -xzf {file}"
+            ok = run_cmd(cmd)
+            if not ok:
+                print("Skipping sample", sample, file=stderr)
+            # remove dest tar
+            remove(file)
+            # remove origin tar
+            remove(path.join(scp_lib_path, file))
+            # Split the sample
+            split_sample(f"res_{sample}")
+            max_splits -= len(listdir(f"res_{sample}"))
+        
+        chdir(saved_path)
+
+
+def recursive_submit():
+    #TODO recode that
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+3600 --time=20:00:00 --job-name=split --hint=nomultithread --output=out/prefold/%j.out --error=out/prefold/%j.err ./scripts/jz_prefold.sh"
+    run_cmd(cmd)
+
+
+if __name__ == "__main__":
+    max_splits = 5000
+    max_splits -= split_existing()
+    decompress_samples(max_splits)
+    recursive_submit()
