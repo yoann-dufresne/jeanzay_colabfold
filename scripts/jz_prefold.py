@@ -26,7 +26,7 @@ def split_existing():
         if (not lib_dir.endswith("_split")) or (not path.isdir(lib_path)):
             continue
 
-        lib = libdir[:-6]
+        lib = lib_dir[:-6]
         print("\tLib", lib)
 
         for sample_dir in listdir(lib_path):
@@ -71,6 +71,7 @@ def split_sample(sample_path):
 
         # Move to current split dir
         rename(path.join(sample_path, file), path.join(split_path, file))
+        current_split_mols += 1
 
 
 def decompress_samples(max_splits=0):
