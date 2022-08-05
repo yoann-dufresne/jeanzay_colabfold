@@ -2,11 +2,12 @@ from os import path, listdir, rename, mkdir, remove, chdir, getcwd, getenv
 from shutil import copy, rmtree
 import subprocess
 from sys import stderr, argv
+from random import randint
 
 # Prepare upload
-uploads = "uploads.sh"
+uploads = f"uploads_{randint(0, 1000000000)}.sh"
 
-with open(uploads, 'a') as up:
+with open(uploads, 'w') as up:
     data_dir = "data"
     for lib_dir in listdir(data_dir):
         if not lib_dir.endswith("_split"):
