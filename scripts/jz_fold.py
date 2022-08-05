@@ -2,6 +2,7 @@
 
 from os import listdir, path, mkdir, remove, rename
 from sys import stderr, argv
+import sys
 import subprocess
 
 # Import the root directory to be able to call palmfold

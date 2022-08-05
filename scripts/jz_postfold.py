@@ -214,6 +214,8 @@ def explore_split(split_path):
     lib = splitted[-4][:-6]
     sample = splitted[-3][4:]
     molecules_path = path.join(*splitted[:-2], f"molecules_{sample}")
+    if not path.exists(molecules_path):
+        mkdir(molecules_path)
 
     save_path = getcwd()
     for mol in files_per_mol:
@@ -281,11 +283,10 @@ def score_molecules(split_path):
 
 
 if __name__ == "__main__":
-    #recursive_submit()
+    recursive_submit()
     current_time = time()
     while current_time - start_time < 3600 * 19:
         explore_directories()
-        break
         sleep(600)
 
     print("Time out")

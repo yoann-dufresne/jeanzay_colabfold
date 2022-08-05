@@ -43,7 +43,6 @@ def split_existing():
             local_splits = len(listdir(fold_path))
             nb_splits += local_splits
             print("Splits: ", local_splits, "->", nb_splits)
-            exit(0)
 
     return nb_splits
 
@@ -84,10 +83,12 @@ def decompress_samples(max_splits=0):
     saved_path = getcwd()
 
     for lib in listdir(scp_path):
-        if not path.isdir(lib):
-            continue
         scp_lib_path = path.join(scp_path, lib)
+        if not path.isdir(scp_lib_path):
+            continue
         lib_path = path.join("data", f"{lib}_split")
+        if not path.exists(lib_path):
+            mkdir(lib_path)
         chdir(lib_path)
 
         print("Lib", lib)
@@ -96,7 +97,7 @@ def decompress_samples(max_splits=0):
             if not file.endswith(".tar.gz"):
                 continue
 
-            if max_decompress == 0:
+            if max_splits <= 0:
                 chdir(saved_path)
                 print("Max splitted folders reached. Quitting...")
                 return
@@ -116,24 +117,24 @@ def decompress_samples(max_splits=0):
             remove(path.join(scp_lib_path, file))
             # Split the sample
             split_sample(f"res_{sample}")
-            local_splits = len(listdir(f"res_{sample}"))
+            local_splits = len(listdir(f"res_{sample}/fold_split"))
             max_splits -= local_splits
             print("Splits: ", local_splits, "Remaining", max_splits)
-            exit(0)
         
         chdir(saved_path)
 
 
 def recursive_submit():
-    #TODO recode that
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+3600 --time=20:00:00 --job-name=split --hint=nomultithread --output=out/prefold/%j.out --error=out/prefold/%j.err ./scripts/jz_prefold.sh"
+    outdir = path.join("out", "prefold")
+    if not path.exists(outdir):
+        mkdir(prefold)
+        
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+14400 --time=20:00:00 --job-name=prefold --hint=nomultithread --output=out/prefold/%j.out --error=out/prefold/%j.err ./scripts/jz_prefold.sh"
     run_cmd(cmd)
 
 
 if __name__ == "__main__":
     max_splits = 5000
     max_splits -= split_existing()
-    exit(0)
     decompress_samples(max_splits)
-    exit(0)
     recursive_submit()
