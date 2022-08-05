@@ -87,6 +87,7 @@ def recursive_submit():
 
 
 def explore_directories():
+    global start_time
     data_dir = "data"
     number_of_submit = 5000 - squeue()
 
@@ -114,7 +115,7 @@ def explore_directories():
             print()
             # Current time check
             current_time = time()
-            if current_time - start_time > 3600 * 19:
+            if (current_time - start_time) > (3600 * 19):
                 print("Out of time. Will wait until the next recursive call")
                 exit(0)
 
@@ -185,11 +186,10 @@ def is_to_fold(split_path):
 
 
 if __name__ == "__main__":
-    # recursive_submit()
+    recursive_submit()
     current_time = time()
-    while current_time - start_time < 3600 * 19:
+    while (current_time - start_time) < (3600 * 19):
         explore_directories()
-        break
         sleep(600)
 
     print("Time out")
