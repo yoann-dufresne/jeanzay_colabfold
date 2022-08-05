@@ -78,11 +78,11 @@ def run_cmd(cmd, stdout=False):
 
 
 def recursive_submit():
-    outdir = path.join("out", "postprocess")
+    outdir = path.join("out", "fold_sched")
     if not path.exists(outdir):
         mkdir(outdir)
 
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=postprocess --hint=nomultithread --output=out/postprocess/%j.out --error=out/postprocess/%j.err ./scripts/jz_fold_scheduler.sh"
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+72000 --time=20:00:00 --job-name=fold_sched --hint=nomultithread --output=out/fold_sched/%j.out --error=out/fold_sched/%j.err ./scripts/jz_fold_scheduler.sh"
     submit_cmd(cmd)
 
 
@@ -157,6 +157,10 @@ def explore_sample(sample_path, max_submit=0):
 
     # Start foldings
     if len(splits_to_fold) > 0:
+        outdir = path.join("out", "fold")
+        if not path.exists(outdir):
+            mkdir(outdir)
+
         cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=sample_path={sample_path} --array={','.join(splits_to_fold)} ./scripts/jz_fold.sh"
         ok = submit_cmd(cmd)
         return ok, len(splits_to_fold)
