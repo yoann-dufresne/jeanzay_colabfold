@@ -17,6 +17,7 @@ def run_cmd(cmd):
 
 
 def split_existing():
+    print("\t\tAnalyse and split already decompressed samples")
     data_path = "data"
     nb_splits = 0
 
@@ -26,6 +27,7 @@ def split_existing():
             continue
 
         lib = libdir[:-6]
+        print("\tLib", lib)
 
         for sample_dir in listdir(lib_path):
             sample_path = path.join(lib_path, sample_dir)
@@ -33,14 +35,21 @@ def split_existing():
                 continue
 
             sample = sample_dir[4:]
+            print(sample_path)
 
             fold_path = path.join(sample_path, "fold_split")
             if not path.exists(fold_path):
                 split_sample(sample_path)
-            nb_splits += len(listdir(fold_path))
+            local_splits = len(listdir(fold_path))
+            nb_splits += local_splits
+            print("Splits: ", local_splits, "->", nb_splits)
+            exit(0)
+
+    return nb_splits
 
 
 def split_sample(sample_path):
+    print("Split", sample_path)
     max_mol_per_split = 20
 
     fold_path = path.join(sample_path, "fold_split")
@@ -65,6 +74,10 @@ def split_sample(sample_path):
 
 
 def decompress_samples(max_splits=0):
+    if max_splits <= 0:
+        return
+
+    print("\t\tDecompressions...")
     scp_path = "/gpfswork/rech/yph/uep61bl/scp_data"
 
     saved_path = getcwd()
@@ -76,6 +89,8 @@ def decompress_samples(max_splits=0):
         lib_path = path.join("data", f"{lib}_split")
         chdir(lib_path)
 
+        print("Lib", lib)
+
         for file in listdir(scp_lib_path):
             if not file.endswith(".tar.gz"):
                 continue
@@ -86,6 +101,7 @@ def decompress_samples(max_splits=0):
                 return
             
             sample = file[:-7]
+            print("Sample", sample)
 
             copy(path.join(scp_lib_path, file), path.join(file))
             # decompress
@@ -99,7 +115,10 @@ def decompress_samples(max_splits=0):
             remove(path.join(scp_lib_path, file))
             # Split the sample
             split_sample(f"res_{sample}")
-            max_splits -= len(listdir(f"res_{sample}"))
+            local_splits = len(listdir(f"res_{sample}"))
+            max_splits -= local_splits
+            print("Splits: ", local_splits, "Remaining", max_splits)
+            exit(0)
         
         chdir(saved_path)
 
@@ -113,5 +132,7 @@ def recursive_submit():
 if __name__ == "__main__":
     max_splits = 5000
     max_splits -= split_existing()
+    exit(0)
     decompress_samples(max_splits)
+    exit(0)
     recursive_submit()
