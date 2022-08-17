@@ -7,25 +7,26 @@ import subprocess as sp
 
 
 def get_sorted_files(dir_path):
-    files = [(path.getctime(path.join(dir_path, f)), f) for f in listdir(dir_path) if not path.isdir(path.join(dir_path, f))]
+    print("analysing logs")
+    files = [(path.getctime(path.join(dir_path, f)), f) for f in listdir(dir_path) if (not path.isdir(path.join(dir_path, f))) and (not f.endswith(".tar.gz"))]
     files.sort()
 
     return files
 
 
-def filter_files(file_tuples, max_files, min_age):
+def filter_files(file_tuples, min_age):
     '''
     Filter a date/file tuple liste to keep only the oldest with at least min_age age.
     Parameters:
         file_tuples: A list of tuples (date of creation (timestamp), file name)
-        max_files: Maximum number of files to keep
         min_age: Minimum elapsed time since the date of creation to keep the file in the list
     Return:
         A list of file names
     '''
+    print("filter log by date")
     current_time = time()
-    file_tuples = [f for t, f in file_tuples if current_time - t >= min_age]
-    return file_tuples[:max_files]
+    filtered = [f for t, f in file_tuples if current_time - t >= min_age]
+    return filtered
 
 
 def compress_files(dir_path, file_list):
@@ -54,10 +55,14 @@ def compress_files(dir_path, file_list):
 
 
 if __name__ == "__main__":
-    log_path = "/mnt/zeus/seqbio/yoann/serratus_data/CFDL/out"
+    log_path = "out"
     folds_out_path = path.join(log_path, "fold")
 
-    files = get_sorted_files(folds_out_path)
-    files = filter_files(files, 10, 3600)
-    print(files)
-    compress_files("scripts", files)
+    to_compress = get_sorted_files(folds_out_path)
+    files = filter_files(to_compress, 3600)
+    i = 1
+    while len(files) > 50000:
+        print("Compression", i)
+        compress_files(folds_out_path, files[:50000])
+        files = files[50000:]
+        i += 1
