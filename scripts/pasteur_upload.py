@@ -6,14 +6,14 @@ from random import randint
 
 
 
-def send_cmd(cmd, stdout=False)
-    cmd = f'ssh ydufresn@192.168.148.50 -t "{cmd}"'
+def run_cmd(cmd, stdout=False):
     print(cmd)
+    
     complete_process = None
     if stdout:
-        complete_process = subprocess.run(cmd.split(' '), capture_output=stdout, text=True)
+        complete_process = subprocess.run(cmd, shell=True, capture_output=stdout, text=True)
     else:
-        complete_process = subprocess.run(cmd.split(' '))
+        complete_process = subprocess.run(cmd, shell=True)
     if complete_process.returncode != 0:
         print("Error: Command finished on non 0 return value", file=stderr)
         print("error code", complete_process.returncode, file=stderr)
@@ -27,13 +27,25 @@ def send_cmd(cmd, stdout=False)
         return True
 
 
+def send_cmd(cmd, stdout=False):
+    cmd = f'ssh ydufresn@192.168.148.50 -t "{cmd}"'
+    return run_cmd(cmd, stdout)
+
+
+def recursive_submit():
+    cmd = "sbatch -p seqbio -A seqbio --qos seqbio -c 1 --mem 20G --begin=now+86400  --job-name=\"upload\" --output=\"out/upload/%j.out\" --error=\"out/upload/%j.err\" ./scripts/pasteur_upload.sh"
+    ok = run_cmd(cmd)
+    if not ok:
+        print("Impossible to recursively submit the script. Quitting...", file=stderr)
+
+
 def remaining_files(data_path):
     to_upload = []
 
-    for lib_dir in listdir(data_dir):
+    for lib_dir in listdir(data_path):
         if not lib_dir.endswith("_split"):
             continue
-        lib_path = path.join(data_dir, lib_dir)
+        lib_path = path.join(data_path, lib_dir)
         lib = lib_dir[:lib_dir.find('_')]
 
         for tar in listdir(lib_path):
@@ -46,12 +58,14 @@ def remaining_files(data_path):
 
 
 def space_used():
-    ok, res_stdout = send_cmd('ssh uep61bl@jean-zay.idris.fr -t "du -sh /gpfswork/rech/yph/uep61bl"', stdout=True)
+    print("Ask Jean Zay for space left on the cluster")
+    ok, res_stdout = send_cmd(f'ssh uep61bl@jean-zay.idris.fr -t \\"du -sh /gpfswork/rech/yph/uep61bl\\"', stdout=True)
     if not ok:
+        print("Impossible so reach Jean Zay. Wait for 1 hour", file=stderr)
+        recursive_submit()
         exit(0)
     space_used = float(res_stdout[:3])
     print("Space used on JZ:", space_used)
-    exit(0)
     return space_used
 
 
@@ -62,7 +76,7 @@ def upload(files):
         if remaining_space <= 0.1:
             break
 
-        # upload 100 files
+        print("upload 100 files")
         for i in range(min(100, len(files))):
             # Get file names
             tar_path = files[i]
@@ -79,6 +93,7 @@ def upload(files):
 
         # Update file list
         files = files[100:]
+        print()
 
     return len(files)
 
@@ -86,7 +101,7 @@ def upload(files):
 if __name__ == "__main__":
     files = remaining_files("data")
     nb_files = upload(files)
-
+    recursive_submit()
 #     files = remaining_files("data")
 #     if len(files) > 0:
 
