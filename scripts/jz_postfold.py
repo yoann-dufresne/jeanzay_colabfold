@@ -40,6 +40,19 @@ def run_cmd(cmd):
     return True
 
 
+def get_libs():
+    libs = []
+    with open("libs.txt") as lfp:
+        for line in lfp:
+            line = line.strip()
+            if len(line) > 0:
+                lib_path = path.join("data", f"{line}_split")
+                if path.exists(lib_path) and path.isdir(lib_path):
+                    libs.append(line)
+
+    return libs
+
+
 def recursive_submit():
     outdir = path.join("out", "postprocess")
     if not path.exists(outdir):
@@ -53,11 +66,12 @@ def recursive_submit():
 def explore_directories():
     data_dir = "data"
 
-    for lib_dir in listdir(data_dir):
+    for lib in get_libs():
+        lib_dir = f"{lib}_split"
         lib_path = path.join(data_dir, lib_dir)
 
         # verifications
-        if not path.isdir(lib_path):
+        if (not path.exists(lib_path)) or (not path.isdir(lib_path)):
             continue
 
         print("\t\tLib", lib_dir)

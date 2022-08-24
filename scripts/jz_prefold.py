@@ -16,17 +16,30 @@ def run_cmd(cmd):
     return True
 
 
+def get_libs():
+    libs = []
+    with open("libs.txt") as lfp:
+        for line in lfp:
+            line = line.strip()
+            if len(line) > 0:
+                lib_path = path.join("data", f"{line}_split")
+                if path.exists(lib_path) and path.isdir(lib_path):
+                    libs.append(line)
+
+    return libs
+
+
 def split_existing():
     print("\t\tAnalyse and split already decompressed samples")
     data_path = "data"
     nb_splits = 0
 
-    for lib_dir in listdir(data_path):
+    for lib in get_libs():
+        lib_dir = f"{lib}_split"
         lib_path = path.join(data_path, lib_dir)
-        if (not lib_dir.endswith("_split")) or (not path.isdir(lib_path)):
+        if (not path.exists(lib_path)) or (not path.isdir(lib_path)):
             continue
 
-        lib = lib_dir[:-6]
         print("\tLib", lib)
 
         for sample_dir in listdir(lib_path):
@@ -82,7 +95,7 @@ def decompress_samples(max_splits=0):
 
     saved_path = getcwd()
 
-    for lib in listdir(scp_path):
+    for lib in get_libs():
         scp_lib_path = path.join(scp_path, lib)
         if not path.isdir(scp_lib_path):
             continue
