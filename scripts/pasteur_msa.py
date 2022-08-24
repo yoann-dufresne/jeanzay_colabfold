@@ -44,16 +44,5 @@ if complete_process.returncode != 0:
     print("Error: MSA compression teminated on non 0 return value", file=stderr)
     print(complete_process.stderr, file=stderr)
     exit(complete_process.returncode)
-# open("aligned.lock", 'a').close()
 
-# Send to JZ
-# cmd = f"ssh ydufresn@192.168.148.50 -t \"rsync {getcwd()}/{tar} {getenv('JZ')}:/gpfswork/rech/yph/uep61bl/scp_data/{lib}/\""
-# print(cmd)
-# complete_process = subprocess.run(cmd.split(' '))
-# if complete_process.returncode != 0:
-#     print("Error: Rsync teminated on non 0 return value", file=stderr)
-#     print(complete_process.stderr, file=stderr)
-#     exit(complete_process.returncode)
-
-# # clean
-# rmove(tar)
+remove(f"{sample}.lock")
