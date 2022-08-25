@@ -176,7 +176,7 @@ def explore_sample(sample_path, max_submit=0):
         if not path.exists(outdir):
             mkdir(outdir)
 
-        cmd = f"sbatch -c 10 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=sample_path={sample_path} --array={','.join(splits_to_fold)} ./scripts/jz_fold.sh"
+        cmd = f"sbatch -c 9 --gres=gpu:1 --qos=qos_gpu-t3 -p gpu_p13 -A mrb@v100 --time=20:00:00 --job-name=fold --hint=nomultithread --output=out/fold/%j.out --error=out/fold/%j.err --export=sample_path={sample_path} --array={','.join(splits_to_fold)} ./scripts/jz_fold.sh"
         ok = submit_cmd(cmd)
         return ok, len(splits_to_fold)
     else:
