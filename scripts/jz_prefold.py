@@ -147,7 +147,7 @@ def recursive_submit():
 
 
 if __name__ == "__main__":
-    max_splits = 5000
+    max_splits = 10000
     max_splits -= split_existing()
     decompress_samples(max_splits)
     recursive_submit()
