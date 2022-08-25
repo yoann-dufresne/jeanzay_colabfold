@@ -142,7 +142,7 @@ def recursive_submit():
     if not path.exists(outdir):
         mkdir(prefold)
         
-    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+14400 --time=20:00:00 --job-name=prefold --hint=nomultithread --output=out/prefold/%j.out --error=out/prefold/%j.err ./scripts/jz_prefold.sh"
+    cmd = f"sbatch -c 1 --qos=qos_cpu-t3 -p prepost,archive,cpu_p1 -A mrb@cpu --begin=now+3600 --time=20:00:00 --job-name=prefold --hint=nomultithread --output=out/prefold/%j.out --error=out/prefold/%j.err ./scripts/jz_prefold.sh"
     run_cmd(cmd)
 
 
