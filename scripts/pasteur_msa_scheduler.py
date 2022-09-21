@@ -33,7 +33,11 @@ def send_cmd(cmd, stdout=False):
 
 
 def recursive_submit():
-    cmd = "sbatch -p seqbio -A seqbio --qos seqbio -c 1 --mem 20G --begin=now+3600  --job-name=\"upload\" --output=\"out/upload/%j.out\" --error=\"out/upload/%j.err\" ./scripts/pasteur_msa_scheduler.sh"
+    out_path = path.join("out", "scheduler")
+    if not path.exists(out_path):
+        mkdir(out_path)
+
+    cmd = "sbatch -p seqbio -A seqbio --qos seqbio -c 1 --mem 20G --begin=now+3600  --job-name=\"scheduler\" --output=\"out/scheduler/%j.out\" --error=\"out/scheduler/%j.err\" ./scripts/pasteur_msa_scheduler.sh"
     ok = run_cmd(cmd)
     if not ok:
         print("Impossible to recursively submit the script. Quitting...", file=stderr)
@@ -83,6 +87,7 @@ def currently_stored(libs):
 
 def todo_msa(lib):
     lib_path = path.join("data", f"{lib}_split")
+    waiting_jobs = nb_jobs()
     
     tars = []
     fas = []
@@ -97,7 +102,10 @@ def todo_msa(lib):
         elif file.endswith('.fa'):
             fas.append(file[:-3])
         elif file.endswith(".lock"):
-            locks.append(file[:-5])
+            if waiting_jobs != 0:
+                locks.append(file[:-5])
+            else:
+                remove(path.join(lib_path, file))
 
     return ((frozenset(fas) - frozenset(tars)) - frozenset(dirs)) - frozenset(locks)
 
@@ -111,19 +119,13 @@ def lib_submition(lib, samples, max_submit):
     nb_submitted = 0
     for i in range(max_submit):
         current_file = path.join("data", f"{lib}_split", f"{samples[i]}.fa")
-        ok = run_cmd(f'sbatch -c 16 --mem="240G" --qos="fast" -p "common,dedicated,human_hidden" --job-name="msa" --output=out/msa/msa_%j.out --error=out/msa/msa_%j.err --export=FILE={current_file} ./scripts/pasteur_msa.sh')
+        ok = run_cmd(f'sbatch -c 16 --mem="240G" --qos="fast" -p "common,dedicated" --job-name="msa" --output=out/msa/msa_%j.out --error=out/msa/msa_%j.err --export=FILE={current_file} ./scripts/pasteur_msa.sh')
         if ok:
             open(path.join("data", f"{lib}_split", f"{samples[i]}.lock"), 'a').close()
             nb_submitted += 1
 
     return nb_submitted
 
-
-def recursive_submit():
-    cmd = "sbatch -p seqbio -A seqbio --qos seqbio -c 1 --mem 20G --begin=now+86400  --job-name=\"mas_sched\" --output=\"out/msa_sched/%j.out\" --error=\"out/mas_sched/%j.err\" ./scripts/pasteur_msa_scheduler.sh"
-    ok = run_cmd(cmd)
-    if not ok:
-        print("Impossible to recursively submit the script. Quitting...", file=stderr)
 
 
 if __name__ == "__main__":
