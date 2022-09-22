@@ -23,6 +23,8 @@ def get_libs():
             line = line.strip()
             if len(line) > 0:
                 lib_path = path.join("data", f"{line}_split")
+                if not path.exists(lib_path):
+                    mkdir(lib_path)
                 if path.exists(lib_path) and path.isdir(lib_path):
                     libs.append(line)
 
