@@ -145,7 +145,7 @@ def compress_and_upload_sample(sample_path):
 
     # Upload
     if ok:
-        cmd = f"/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {archive} s3://serratus-fold/CFDL/{archive}"
+        cmd = f"/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {archive} s3://serratus-fold/{lib}/{archive}"
         print("sending", sample_path)
         ok = run_cmd(cmd)
     
