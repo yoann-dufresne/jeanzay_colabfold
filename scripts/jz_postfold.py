@@ -131,23 +131,26 @@ def compress_and_upload_sample(sample_path):
     path_save = getcwd()
     chdir(sample_path)
 
-    # Names
-    archive = f"{lib}_{sample}.tar.gz"
+    # Verify molecule path
+    ok = True
+    if path.exists(f"molecules_{sample}"):
+        # Names
+        archive = f"{lib}_{sample}.tar.gz"
 
-    # Compress
-    cmd = f"tar -czf {archive} molecules_{sample}"
-    ok = run_cmd(cmd)
-    if ok:
-        rmtree(f"molecules_{sample}")
-    else:
-        if path.exists(archive):
-            remove(archive)
-
-    # Upload
-    if ok:
-        cmd = f"/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {archive} s3://serratus-fold/{lib}/{archive}"
-        print("sending", sample_path)
+        # Compress
+        cmd = f"tar -czf {archive} molecules_{sample}"
         ok = run_cmd(cmd)
+        if ok:
+            rmtree(f"molecules_{sample}")
+        else:
+            if path.exists(archive):
+                remove(archive)
+
+        # Upload
+        if ok:
+            cmd = f"/gpfswork/rech/yph/uep61bl/software/aws/dist/aws s3 cp {archive} s3://serratus-fold/{lib}/{archive}"
+            print("sending", sample_path)
+            ok = run_cmd(cmd)
     
     chdir(path_save)
 

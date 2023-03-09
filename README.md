@@ -12,6 +12,8 @@ Scripts to run colabfold on jean zay supercomputer for multi millions of molecul
 
 # Usage
 
+!!!! This doc is outdated !!!!
+
 - Add your data in the data directory of the project (a multi-fasta file)
 - Use ```preprocess.sh data/myfasta.fa data/output_dir/ ``` to prepare your data. The output_dir must end with "\_split" for the following step.
 The process will sort your fasta by sequence length and then split it in managable size fastas.
