@@ -17,7 +17,7 @@ def run_cmd(cmd, err_msg, on_error=None):
 
 
 db = "/pasteur/appa/scratch/rchikhi/colabfold_db/"
-tdb = "/pasteur/appa/scratch/ydufresn/id90/pssm_and_intact_suggested_db"
+tdb = "/pasteur/appa/scratch/ydufresn/id90/pssm_intact_and_permuted_suggested_db"
 fa = argv[1]
 
 if not path.exists(fa):
@@ -42,58 +42,43 @@ if path.exists(out_dir):
     rmtree(out_dir)
 cmd = f"colabfold_search {fa} {db} {out_dir} --db-load-mode 2 --threads 16"
 run_cmd(cmd, "Error: Colabfold teminated on non 0 return value")
+msa_colab = path.join(out_dir, "final.a3m")
 
 
-# Add neighbor rdrp to each of the msa
-for msa_filename in [f for f in listdir(out_dir) if f.endswith(".a3m")]:
-    mol_name = msa_filename[:-4]
-    a3m_path = path.join(out_dir, msa_filename)
-    a3mfa_path = f"{a3m_path[:-4]}.a3mfa"
+qdb = path.join(out_dir, f"qdb")
+res = path.join(out_dir, f"res")
+tmp = path.join(out_dir, f"tmp")
 
-    # Extract the molecule of interest from the a3m
-    with open(a3m_path) as a3m, open(a3mfa_path, "w") as a3mfa:
-        print(a3m.readline().strip(), file=a3mfa)
-        print(a3m.readline().strip(), file=a3mfa)
+# Create query database for mmseq
+cmd = f"mmseqs createdb {fa} {qdb}"
+print(cmd)
+run_cmd(cmd, f"Error: Impossible to create the query database for {sample}")
 
-    qdb = path.join(out_dir, f"qdb.{mol_name}.fa")
-    res = path.join(out_dir, f"res.{mol_name}.fa")
-    tmp = path.join(out_dir, f"tmp.{mol_name}.fa")
+# Search the queries into rdrps
+cmd = f"mmseqs search --threads 16 {qdb} {tdb} {res} {tmp}"
+run_cmd(cmd, f"Error: mmseqs search terminated on non 0 return value for sample {sample}")
+# Extract the msa
+msa_rdrp = path.join(out_dir, "msa2")
+cmd = f"mmseqs result2msa --threads 16 {qdb} {tdb} {res} {msa_rdrp}"
+run_cmd(cmd, f"Impossible to convert result to msa for sample {sample}")
 
-    # index sequence inside of the msa
-    cmd = f"mmseqs createdb {a3mfa_path} {qdb}"
-    run_cmd(cmd, "Error: mmseqs createdb teminated on non 0 return value")
-    # Search the a3m seq into the rdrp db
-    cmd = f"mmseqs search --threads 1 {qdb} {tdb} {res} {tmp}"
-    run_cmd(cmd, "Error: mmseqs search terminated on non 0 return value")
-    
-    # Move and protect the old a3m
-    rename(a3m_path, f"{a3m_path}.old")
-    def rollback():
-        rename(f"{a3m_path}.old", a3m_path)
+# Generate final alignment
+align = path.join(out_dir, "final_msa")
+cmd = f"mmseqs mergedbs {qdb} {align} {msa_colab} {msa_rdrp}"
+run_cmd(cmd, f"Impossible to merge msas for sample {sample}")
+remove(msa_colab)
 
-    # Extract the msa into an a3m file
-    cmd = f"mmseqs result2msa --threads 1 {qdb} {tdb} {res} {a3m_path}.new --msa-format-mode 5"
-    run_cmd(cmd, "Error: mmseqs msa extraction failed", on_error=rollback)
+#unpack msas
+cmd = f"mmseqs unpackdb {align} {out_dir} --unpack-name-mode 0 --unpack-suffix .a3m"
+run_cmd(cmd, f"Impossible to unpack databases into a3m files for sample {sample}")
 
-    # Concatenated the a3m files
-    with open(f"{a3m_path}.old") as a3mold, open(f"{a3m_path}.new") as a3mnew, open(a3m_path, "w") as a3m:
-        for line in a3mold:
-            print(line.strip(), file=a3m)
-        for line in a3mnew:
-            print(line.strip(), file=a3m)
-
-    # Clean the directory
-    rmtree(tmp)
-    for file in [f for f in listdir(out_dir) if f.startswith(f"qdb.{mol_name}.fa")]:
-        remove(path.join(out_dir, file))
-    for file in [f for f in listdir(out_dir) if f.startswith(f"res.{mol_name}.fa")]:
-        remove(path.join(out_dir, file))
-    for file in [f for f in listdir(out_dir) if f.startswith(f"{mol_name}.a3m.new")]:
-        remove(path.join(out_dir, file))
-    remove(f"{a3m_path}.old")
-    remove(a3mfa_path)
-
-
+# Clean directory
+for file in listdir(out_dir):
+    if not file.endswith(".a3m"):
+        if path.isdir(path.join(out_dir, file)):
+            rmtree(path.join(out_dir, file))
+        else:
+            remove(path.join(out_dir, file))
 
 # Compress
 copy(fa, path.join(out_dir, splitted_path[-1]))
